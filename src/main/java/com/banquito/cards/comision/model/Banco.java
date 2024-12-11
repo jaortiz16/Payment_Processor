@@ -1,13 +1,13 @@
-package com.banquito.cards.comision;
+package com.banquito.cards.comision.model;
 
 
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotNull;
 
 import java.io.Serializable;
 import java.security.Timestamp;
 import java.util.Objects;
-import jakarta.validation.constraints.NotNull;
 
 @Entity
 @Table(name = "BANCO")
@@ -18,26 +18,37 @@ public class Banco implements Serializable {
     @Column(name = "COD_BANCO", nullable = false)
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer codBanco;
+    @NotNull
     @Column(name = "CODIGO_INTERNO", length = 10, nullable = false)
     private String codigoInterno;
+    @NotNull
     @Column(name = "RUC", length = 13, nullable = false)
     private String ruc;
+    @NotNull
     @Column(name = "RAZON_SOCIAL", length = 100, nullable = false)
     private String razonSocial;
+    @NotNull
     @Column(name = "NOMBRE_COMERCIAL", length = 100, nullable = false)
     private String nombreComercial;
+    @NotNull
     @Temporal(TemporalType.TIMESTAMP)
     @Column(name = "FECHA_CREACION", nullable = false)
     private Timestamp fechaCreacion;
     @ManyToOne
     @JoinColumn(name = "COD_COMISION", referencedColumnName = "COD_COMISION", insertable = false, updatable = false)
     private Comision comision;
+    @NotNull
     @Column(name = "ESTADO", length = 3, nullable = false)
     private String estado;
     @Temporal(TemporalType.TIMESTAMP)
     @Column(name = "FECHA_INACTIVACION")
     private Timestamp fechaInactivacion;
+
     public Banco() {}
+
+    public Banco(Integer codBanco) {
+        this.codBanco = codBanco;
+    }
 
     public Integer getCodBanco() {
         return codBanco;
@@ -111,40 +122,30 @@ public class Banco implements Serializable {
         this.fechaInactivacion = fechaInactivacion;
     }
 
-    public Banco(Integer codBanco) {
-        this.codBanco = codBanco;
+    @Override
+    public boolean equals(Object o) {
+        if (o == null || getClass() != o.getClass()) return false;
+        Banco banco = (Banco) o;
+        return Objects.equals(codBanco, banco.codBanco);
     }
 
     @Override
     public int hashCode() {
-        final int prime = 31;
-        int result = 1;
-        result = prime * result + ((codBanco == null) ? 0 : codBanco.hashCode());
-        return result;
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-        if (this == obj)
-            return true;
-        if (obj == null)
-            return false;
-        if (getClass() != obj.getClass())
-            return false;
-        Banco other = (Banco) obj;
-        if (codBanco == null) {
-            if (other.codBanco != null)
-                return false;
-        } else if (!codBanco.equals(other.codBanco))
-            return false;
-        return true;
+        return Objects.hashCode(codBanco);
     }
 
     @Override
     public String toString() {
-        return "Banco [codBanco=" + codBanco + ", codigoInterno=" + codigoInterno + ", ruc=" + ruc + ", razonSocial="
-                + razonSocial + ", nombreComercial=" + nombreComercial + ", fechaCreacion=" + fechaCreacion
-                + ", comision=" + comision + ", estado=" + estado + ", fechaInactivacion=" + fechaInactivacion + "]";
+        return "Banco{" +
+                "codBanco=" + codBanco +
+                ", codigoInterno='" + codigoInterno + '\'' +
+                ", ruc='" + ruc + '\'' +
+                ", razonSocial='" + razonSocial + '\'' +
+                ", nombreComercial='" + nombreComercial + '\'' +
+                ", fechaCreacion=" + fechaCreacion +
+                ", comision=" + comision +
+                ", estado='" + estado + '\'' +
+                ", fechaInactivacion=" + fechaInactivacion +
+                '}';
     }
-
 }
