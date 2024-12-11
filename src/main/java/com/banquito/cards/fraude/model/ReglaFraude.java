@@ -1,6 +1,7 @@
 package com.banquito.cards.fraude.model;
-import com.banquito.cards.transaccion.Transaccion;
+import com.banquito.cards.transaccion.model.Transaccion;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotNull;
 
 import java.io.Serializable;
 import java.math.BigDecimal;
@@ -17,27 +18,27 @@ public class ReglaFraude implements Serializable {
     @Column(name = "COD_REGLA", nullable = false)
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer codRegla;
-
+    @NotNull
     @ManyToOne
     @JoinColumn(name = "COD_TRANSACCION", referencedColumnName = "COD_TRANSACCION", insertable = false, updatable = false)
     private Transaccion transaccion;
-
+    @NotNull
     @Column(name = "NOMBRE_REGLA", length = 50, nullable = false)
     private String nombreRegla;
-
+    @NotNull
     @Column(name = "LIMITE_TRANSACCIONES", precision = 9, scale = 0, nullable = false)
     private BigDecimal limiteTransacciones;
-
+    @NotNull
     @Column(name = "PERIODO_TIEMPO", length = 3, nullable = false)
     private String periodoTiempo;
-
+    @NotNull
     @Column(name = "LIMITE_MONTO_TOTAL", precision = 18, scale = 2, nullable = false)
     private BigDecimal limiteMontoTotal;
-
+    @NotNull
     @Temporal(TemporalType.TIMESTAMP)
     @Column(name = "FECHA_CREACION", nullable = false)
     private Timestamp fechaCreacion;
-
+    @NotNull
     @Temporal(TemporalType.TIMESTAMP)
     @Column(name = "FECHA_ACTUALIZACION")
     private Timestamp fechaActualizacion;

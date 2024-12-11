@@ -3,35 +3,42 @@ package com.banquito.cards.comision.model;
 
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotNull;
 
 import java.io.Serializable;
 import java.math.BigDecimal;
+import java.util.Objects;
 
 @Entity
 @Table(name = "COMISION_SEGMENTO")
 public class ComisionSegmento implements Serializable {
 
     @EmbeddedId
-    private ComisionPK id;
-
+    private ComisionPK pk;
+    @NotNull
     @Column(name = "TRANSACCIONES_HASTA", precision = 9, scale = 0, nullable = false)
     private BigDecimal transaccionesHasta;
-
+    @NotNull
     @Column(name = "MONTO", precision = 20, scale = 4, nullable = false)
     private BigDecimal monto;
-
+    @NotNull
     @ManyToOne
     @JoinColumn(name = "COD_COMISION", referencedColumnName = "COD_COMISION", insertable = false, updatable = false)
-    private Comision Comision;
+    private Comision comision;
 
-    public ComisionSegmento(){}
-
-    public ComisionPK getId() {
-        return id;
+    public ComisionSegmento() {
     }
 
-    public void setId(ComisionPK id) {
-        this.id = id;
+    public ComisionSegmento(ComisionPK pk) {
+        this.pk = pk;
+    }
+
+    public ComisionPK getPk() {
+        return pk;
+    }
+
+    public void setPk(ComisionPK pk) {
+        this.pk = pk;
     }
 
     public BigDecimal getTransaccionesHasta() {
@@ -51,27 +58,32 @@ public class ComisionSegmento implements Serializable {
     }
 
     public Comision getComision() {
-        return Comision;
+        return comision;
     }
 
     public void setComision(Comision comision) {
-        Comision = comision;
-    }
-
-    public ComisionSegmento(ComisionPK id) {
-        this.id = id;
+        this.comision = comision;
     }
 
     @Override
     public boolean equals(Object o) {
         if (o == null || getClass() != o.getClass()) return false;
-
         ComisionSegmento that = (ComisionSegmento) o;
-        return id.equals(that.id);
+        return Objects.equals(pk, that.pk);
     }
 
     @Override
     public int hashCode() {
-        return id.hashCode();
+        return Objects.hashCode(pk);
+    }
+
+    @Override
+    public String toString() {
+        return "ComisionSegmento{" +
+                "pk=" + pk +
+                ", transaccionesHasta=" + transaccionesHasta +
+                ", monto=" + monto +
+                ", comision=" + comision +
+                '}';
     }
 }

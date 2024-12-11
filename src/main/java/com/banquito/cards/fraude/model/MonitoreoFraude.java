@@ -2,6 +2,7 @@ package com.banquito.cards.fraude.model;
 
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotNull;
 
 import java.io.Serializable;
 import java.security.Timestamp;
@@ -12,17 +13,17 @@ import java.util.Date;
 public class MonitoreoFraude implements Serializable {
 
     @Id
+    @NotNull
     @Column(name = "COD_MONITOREO_FRAUDE", nullable = false)
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer code;
-
     @ManyToOne
     @JoinColumn(name = "COD_REGLA", referencedColumnName = "COD_REGLA", insertable = false, updatable = false)
     private ReglaFraude reglaFraude;
-
+    @NotNull
     @Column(name = "RIESGO", length = 5, nullable = false)
     private String riesgo;
-
+    @NotNull
     @Temporal(TemporalType.TIMESTAMP)
     @Column(name = "FECHA_DETECCION", nullable = false)
     private Timestamp fechaDeteccion;
