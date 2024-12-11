@@ -1,35 +1,40 @@
 package com.banquito.cards.transaccion.model;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotNull;
 
 import java.io.Serializable;
 import java.security.Timestamp;
+import java.time.LocalDateTime;
 import java.util.Date;
+import java.util.Objects;
 
 @Entity
 @Table(name = "HISTORIAL_ESTADO_TRANSACCION")
 public class HistorialEstadoTransaccion implements Serializable {
 
     @Id
+    @NotNull
     @Column(name = "COD_HISTORIAL_ESTADO", nullable = false)
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer code;
-
+    @NotNull
     @ManyToOne
     @JoinColumn(name = "COD_TRANSACCION", referencedColumnName = "COD_TRANSACCION", insertable = false, updatable = false)
     private Transaccion transaccion;
-
+    @NotNull
     @Column(name = "ESTADO", length = 3, nullable = false)
     private String estado;
-
     @Temporal(TemporalType.TIMESTAMP)
     @Column(name = "FECHA_ESTADO_CAMBIO")
-    private Timestamp fechaEstadoCambio;
-
+    private LocalDateTime fechaEstadoCambio;
     @Column(name = "DETALLE", length = 50)
     private String detalle;
 
-    public HistorialEstadoTransaccion() {
+    public HistorialEstadoTransaccion() {}
+
+    public HistorialEstadoTransaccion(Integer code) {
+        this.code = code;
     }
 
     public Integer getCode() {
@@ -56,11 +61,11 @@ public class HistorialEstadoTransaccion implements Serializable {
         this.estado = estado;
     }
 
-    public Timestamp getFechaEstadoCambio() {
+    public LocalDateTime getFechaEstadoCambio() {
         return fechaEstadoCambio;
     }
 
-    public void setFechaEstadoCambio(Timestamp fechaEstadoCambio) {
+    public void setFechaEstadoCambio(LocalDateTime fechaEstadoCambio) {
         this.fechaEstadoCambio = fechaEstadoCambio;
     }
 
@@ -72,20 +77,26 @@ public class HistorialEstadoTransaccion implements Serializable {
         this.detalle = detalle;
     }
 
-    public HistorialEstadoTransaccion(Integer code) {
-        this.code = code;
-    }
-
     @Override
     public boolean equals(Object o) {
         if (o == null || getClass() != o.getClass()) return false;
-
         HistorialEstadoTransaccion that = (HistorialEstadoTransaccion) o;
-        return code.equals(that.code);
+        return Objects.equals(code, that.code);
     }
 
     @Override
     public int hashCode() {
-        return code.hashCode();
+        return Objects.hashCode(code);
+    }
+
+    @Override
+    public String toString() {
+        return "HistorialEstadoTransaccion{" +
+                "code=" + code +
+                ", transaccion=" + transaccion +
+                ", estado='" + estado + '\'' +
+                ", fechaEstadoCambio=" + fechaEstadoCambio +
+                ", detalle='" + detalle + '\'' +
+                '}';
     }
 }

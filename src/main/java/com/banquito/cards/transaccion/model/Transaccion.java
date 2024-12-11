@@ -2,81 +2,80 @@ package com.banquito.cards.transaccion.model;
 
 
 
-import com.banquito.cards.comision.Banco;
-import com.banquito.cards.comision.Comision;
+import com.banquito.cards.comision.model.Banco;
+import com.banquito.cards.comision.model.Comision;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotNull;
 
 import java.io.Serializable;
 import java.security.Timestamp;
-import java.util.Date;
-import java.util.List;
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.Objects;
 
 @Entity
 @Table(name = "TRANSACCION")
 public class Transaccion implements Serializable {
 
     @Id
+    @NotNull
     @Column(name = "COD_TRANSACCION", nullable = false)
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Integer codTransaccion;
-
+    private Integer code;
+    @NotNull
     @ManyToOne
     @JoinColumn(name = "COD_BANCO", referencedColumnName = "COD_BANCO", insertable = false, updatable = false)
     private Banco banco;
-
+    @NotNull
     @ManyToOne
     @JoinColumn(name = "COD_COMISION", referencedColumnName = "COD_COMISION", insertable = false, updatable = false)
     private Comision comision;
-
+    @NotNull
     @Column(name = "MONTO", precision = 18, scale = 2, nullable = false)
     private BigDecimal monto;
-
+    @NotNull
     @Column(name = "CODIGO_MONEDA", length = 3, nullable = false)
     private String codigoMoneda;
-
+    @NotNull
     @Column(name = "MARCA", length = 4, nullable = false)
     private String marca;
-
+    @NotNull
     @Column(name = "FECHA_EXPIRACION_TARJETA", length = 128,nullable = false)
     private String fechaExpiracionTarjeta;
-
+    @NotNull
     @Column(name = "NOMBRE_TARJETA", length = 128, nullable = false)
     private String nombreTarjeta;
-
+    @NotNull
     @Column(name = "NUMERO_TARJETA", length = 128, nullable = false)
     private String numeroTarjeta;
-
+    @NotNull
     @Column(name = "DIRECCION_TARJETA", length = 128, nullable = false)
     private String direccionTarjeta;
-
+    @NotNull
     @Column(name = "CVV", length = 128, nullable = false)
     private String cvv;
-
+    @NotNull
     @Column(name = "ESTADO", length = 3, nullable = false)
     private String estado;
-
     @Column(name = "DETALLE", length = 50)
     private String detalle;
-
+    @NotNull
     @Temporal(TemporalType.TIMESTAMP)
     @Column(name = "FECHA_CREACION", nullable = false)
-    private Timestamp fechaCreacion;
+    private LocalDateTime fechaCreacion;
 
     public Transaccion() {}
 
-    public Transaccion(Integer codTransaccion, Banco banco, Comision comision) {
-        this.codTransaccion = codTransaccion;
-        this.banco = banco;
-        this.comision = comision;
+    public Transaccion(Integer code) {
+        this.code = code;
     }
 
-    public Integer getCodTransaccion() {
-        return codTransaccion;
+    public Integer getCode() {
+        return code;
     }
 
-    public void setCodTransaccion(Integer codTransaccion) {
-        this.codTransaccion = codTransaccion;
+    public void setCode(Integer code) {
+        this.code = code;
     }
 
     public Banco getBanco() {
@@ -175,27 +174,43 @@ public class Transaccion implements Serializable {
         this.detalle = detalle;
     }
 
-    public Timestamp getFechaCreacion() {
+    public LocalDateTime getFechaCreacion() {
         return fechaCreacion;
     }
 
-    public void setFechaCreacion(Timestamp fechaCreacion) {
+    public void setFechaCreacion(LocalDateTime fechaCreacion) {
         this.fechaCreacion = fechaCreacion;
     }
 
     @Override
     public boolean equals(Object o) {
         if (o == null || getClass() != o.getClass()) return false;
-
         Transaccion that = (Transaccion) o;
-        return codTransaccion.equals(that.codTransaccion) && banco.equals(that.banco) && comision.equals(that.comision);
+        return Objects.equals(code, that.code);
     }
 
     @Override
     public int hashCode() {
-        int result = codTransaccion.hashCode();
-        result = 31 * result + banco.hashCode();
-        result = 31 * result + comision.hashCode();
-        return result;
+        return Objects.hashCode(code);
+    }
+
+    @Override
+    public String toString() {
+        return "Transaccion{" +
+                "code=" + code +
+                ", banco=" + banco +
+                ", comision=" + comision +
+                ", monto=" + monto +
+                ", codigoMoneda='" + codigoMoneda + '\'' +
+                ", marca='" + marca + '\'' +
+                ", fechaExpiracionTarjeta='" + fechaExpiracionTarjeta + '\'' +
+                ", nombreTarjeta='" + nombreTarjeta + '\'' +
+                ", numeroTarjeta='" + numeroTarjeta + '\'' +
+                ", direccionTarjeta='" + direccionTarjeta + '\'' +
+                ", cvv='" + cvv + '\'' +
+                ", estado='" + estado + '\'' +
+                ", detalle='" + detalle + '\'' +
+                ", fechaCreacion=" + fechaCreacion +
+                '}';
     }
 }

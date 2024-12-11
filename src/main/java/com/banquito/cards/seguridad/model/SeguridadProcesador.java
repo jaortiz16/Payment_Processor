@@ -3,46 +3,49 @@ package com.banquito.cards.seguridad.model;
 
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotNull;
 
 import java.io.Serializable;
-import java.security.Timestamp;
-import java.util.Date;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.Objects;
 
 @Entity
 @Table(name = "SEGURIDAD_PROCESADOR")
 public class SeguridadProcesador implements Serializable {
 
     @Id
+    @NotNull
     @Column(name = "COD_SEGURIDAD_PROCESADOR", nullable = false)
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Integer codSeguridadProcesador;
-
+    private Integer code;
+    @NotNull
     @Column(name = "CLAVE", length = 128, nullable = false)
     private String clave;
-
+    @NotNull
     @Temporal(TemporalType.TIMESTAMP)
     @Column(name = "FECHA_ACTUALIZACION", nullable = false)
-    private Timestamp fechaActualizacion;
-
+    private LocalDateTime fechaActualizacion;
+    @NotNull
     @Temporal(TemporalType.DATE)
     @Column(name = "FECHA_ACTIVACION", nullable = false)
-    private Date fechaActivacion;
-
+    private LocalDate fechaActivacion;
+    @NotNull
     @Column(name = "ESTADO", length = 3, nullable = false)
     private String estado;
 
     public SeguridadProcesador() {}
 
-    public SeguridadProcesador(Integer codSeguridadProcesador) {
-        this.codSeguridadProcesador = codSeguridadProcesador;
+    public SeguridadProcesador(Integer code) {
+        this.code = code;
     }
 
-    public Integer getCodSeguridadProcesador() {
-        return codSeguridadProcesador;
+    public Integer getCode() {
+        return code;
     }
 
-    public void setCodSeguridadProcesador(Integer codSeguridadProcesador) {
-        this.codSeguridadProcesador = codSeguridadProcesador;
+    public void setCode(Integer code) {
+        this.code = code;
     }
 
     public String getClave() {
@@ -53,19 +56,11 @@ public class SeguridadProcesador implements Serializable {
         this.clave = clave;
     }
 
-    public Timestamp getFechaActualizacion() {
-        return fechaActualizacion;
-    }
-
-    public void setFechaActualizacion(Timestamp fechaActualizacion) {
-        this.fechaActualizacion = fechaActualizacion;
-    }
-
-    public Date getFechaActivacion() {
+    public LocalDate getFechaActivacion() {
         return fechaActivacion;
     }
 
-    public void setFechaActivacion(Date fechaActivacion) {
+    public void setFechaActivacion(LocalDate fechaActivacion) {
         this.fechaActivacion = fechaActivacion;
     }
 
@@ -77,16 +72,34 @@ public class SeguridadProcesador implements Serializable {
         this.estado = estado;
     }
 
+    public LocalDateTime getFechaActualizacion() {
+        return fechaActualizacion;
+    }
+
+    public void setFechaActualizacion(LocalDateTime fechaActualizacion) {
+        this.fechaActualizacion = fechaActualizacion;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (o == null || getClass() != o.getClass()) return false;
-
         SeguridadProcesador that = (SeguridadProcesador) o;
-        return codSeguridadProcesador.equals(that.codSeguridadProcesador);
+        return Objects.equals(code, that.code);
     }
 
     @Override
     public int hashCode() {
-        return codSeguridadProcesador.hashCode();
+        return Objects.hashCode(code);
+    }
+
+    @Override
+    public String toString() {
+        return "SeguridadProcesador{" +
+                "code=" + code +
+                ", clave='" + clave + '\'' +
+                ", fechaActualizacion=" + fechaActualizacion +
+                ", fechaActivacion=" + fechaActivacion +
+                ", estado='" + estado + '\'' +
+                '}';
     }
 }

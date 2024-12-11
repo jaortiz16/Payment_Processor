@@ -1,25 +1,27 @@
 package com.banquito.cards.seguridad.model;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotNull;
 
 import java.io.Serializable;
-import java.security.Timestamp;
-import java.util.Date;
+import java.time.LocalDateTime;
+import java.util.Objects;
 
 @Entity
 @Table(name = "SEGURIDAD_MARCA")
 public class SeguridadMarca implements Serializable {
 
     @Id
+    @NotNull
     @Column(name = "MARCA", length = 4, nullable = false)
     private String marca;
-
+    @NotNull
     @Column(name = "CLAVE", length = 128, nullable = false)
     private String clave;
-
+    @NotNull
     @Temporal(TemporalType.TIMESTAMP)
     @Column(name = "FECHA_ACTUALIZACION", nullable = false)
-    private Timestamp fechaActualizacion;
+    private LocalDateTime fechaActualizacion;
 
     public SeguridadMarca() {}
 
@@ -43,24 +45,32 @@ public class SeguridadMarca implements Serializable {
         this.clave = clave;
     }
 
-    public Timestamp getFechaActualizacion() {
+    public LocalDateTime getFechaActualizacion() {
         return fechaActualizacion;
     }
 
-    public void setFechaActualizacion(Timestamp fechaActualizacion) {
+    public void setFechaActualizacion(LocalDateTime fechaActualizacion) {
         this.fechaActualizacion = fechaActualizacion;
     }
 
     @Override
     public boolean equals(Object o) {
         if (o == null || getClass() != o.getClass()) return false;
-
         SeguridadMarca that = (SeguridadMarca) o;
-        return marca.equals(that.marca);
+        return Objects.equals(marca, that.marca);
     }
 
     @Override
     public int hashCode() {
-        return marca.hashCode();
+        return Objects.hashCode(marca);
+    }
+
+    @Override
+    public String toString() {
+        return "SeguridadMarca{" +
+                "marca='" + marca + '\'' +
+                ", clave='" + clave + '\'' +
+                ", fechaActualizacion=" + fechaActualizacion +
+                '}';
     }
 }

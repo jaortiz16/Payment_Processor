@@ -1,46 +1,49 @@
 package com.banquito.cards.seguridad.model;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotNull;
 
 import java.io.Serializable;
-import java.security.Timestamp;
-import java.util.Date;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.Objects;
 
 @Entity
 @Table(name = "SEGURIDAD_BANCO")
 public class SeguridadBanco implements Serializable {
 
     @Id
+    @NotNull
     @Column(name = "COD_SEGURIDAD_BANCO", nullable = false)
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Integer codSeguridadBanco;
-
+    private Integer code;
+    @NotNull
     @Column(name = "CLAVE", length = 128, nullable = false)
     private String clave;
-
+    @NotNull
     @Temporal(TemporalType.TIMESTAMP)
     @Column(name = "FECHA_ACTUALIZACION", nullable = false)
-    private Timestamp fechaActualizacion;
-
+    private LocalDateTime fechaActualizacion;
+    @NotNull
     @Temporal(TemporalType.DATE)
     @Column(name = "FECHA_ACTIVACION", nullable = false)
-    private Date fechaActivacion;
-
+    private LocalDate fechaActivacion;
+    @NotNull
     @Column(name = "ESTADO", length = 3, nullable = false)
     private String estado;
 
     public SeguridadBanco() {}
 
-    public SeguridadBanco(Integer codSeguridadBanco) {
-        this.codSeguridadBanco = codSeguridadBanco;
+    public SeguridadBanco(Integer code) {
+        this.code = code;
     }
 
-    public Integer getCodSeguridadBanco() {
-        return codSeguridadBanco;
+    public Integer getCode() {
+        return code;
     }
 
-    public void setCodSeguridadBanco(Integer codSeguridadBanco) {
-        this.codSeguridadBanco = codSeguridadBanco;
+    public void setCode(Integer code) {
+        this.code = code;
     }
 
     public String getClave() {
@@ -51,19 +54,19 @@ public class SeguridadBanco implements Serializable {
         this.clave = clave;
     }
 
-    public Timestamp getFechaActualizacion() {
+    public LocalDateTime getFechaActualizacion() {
         return fechaActualizacion;
     }
 
-    public void setFechaActualizacion(Timestamp fechaActualizacion) {
+    public void setFechaActualizacion(LocalDateTime fechaActualizacion) {
         this.fechaActualizacion = fechaActualizacion;
     }
 
-    public Date getFechaActivacion() {
+    public LocalDate getFechaActivacion() {
         return fechaActivacion;
     }
 
-    public void setFechaActivacion(Date fechaActivacion) {
+    public void setFechaActivacion(LocalDate fechaActivacion) {
         this.fechaActivacion = fechaActivacion;
     }
 
@@ -78,13 +81,23 @@ public class SeguridadBanco implements Serializable {
     @Override
     public boolean equals(Object o) {
         if (o == null || getClass() != o.getClass()) return false;
-
         SeguridadBanco that = (SeguridadBanco) o;
-        return codSeguridadBanco.equals(that.codSeguridadBanco);
+        return Objects.equals(code, that.code);
     }
 
     @Override
     public int hashCode() {
-        return codSeguridadBanco.hashCode();
+        return Objects.hashCode(code);
+    }
+
+    @Override
+    public String toString() {
+        return "SeguridadBanco{" +
+                "code=" + code +
+                ", clave='" + clave + '\'' +
+                ", fechaActualizacion=" + fechaActualizacion +
+                ", fechaActivacion=" + fechaActivacion +
+                ", estado='" + estado + '\'' +
+                '}';
     }
 }

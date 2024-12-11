@@ -2,49 +2,55 @@ package com.banquito.cards.seguridad.model;
 
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotNull;
 
 import java.io.Serializable;
-import java.security.Timestamp;
-import java.util.Date;
+import java.time.LocalDateTime;
+import java.util.Objects;
 
 @Entity
 @Table(name = "LOG_CONEXION")
 public class LogConexion implements Serializable {
 
     @Id
+    @NotNull
     @Column(name = "COD_LOG", nullable = false)
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Integer codLog;
-
+    private Integer code;
+    @NotNull
     @ManyToOne
     @JoinColumn(name = "MARCA", referencedColumnName = "MARCA", insertable = false, updatable = false)
     private SeguridadMarca seguridadMarca;
-
+    @NotNull
     @ManyToOne
     @JoinColumn(name = "COD_SEGURIDAD_BANCO", referencedColumnName = "COD_SEGURIDAD_BANCO", insertable = false, updatable = false)
     private SeguridadBanco seguridadBanco;
-
+    @NotNull
     @Temporal(TemporalType.TIMESTAMP)
     @Column(name = "FECHA", nullable = false)
-    private Timestamp fecha;
-
+    private LocalDateTime fecha;
+    @NotNull
     @Column(name = "IP_ORIGEN", length = 15, nullable = false)
     private String ipOrigen;
-
+    @NotNull
     @Column(name = "OPERACION", length = 50, nullable = false)
     private String operacion;
-
+    @NotNull
     @Column(name = "RESULTADO", length = 3, nullable = false)
     private String resultado;
 
     public LogConexion() {}
 
-    public Integer getCodLog() {
-        return codLog;
+    public LogConexion(Integer code) {
+        this.code = code;
     }
 
-    public void setCodLog(Integer codLog) {
-        this.codLog = codLog;
+    public Integer getCode() {
+        return code;
+    }
+
+    public void setCode(Integer code) {
+        this.code = code;
     }
 
     public SeguridadMarca getSeguridadMarca() {
@@ -63,20 +69,20 @@ public class LogConexion implements Serializable {
         this.seguridadBanco = seguridadBanco;
     }
 
-    public Timestamp getFecha() {
-        return fecha;
-    }
-
-    public void setFecha(Timestamp fecha) {
-        this.fecha = fecha;
-    }
-
     public String getIpOrigen() {
         return ipOrigen;
     }
 
     public void setIpOrigen(String ipOrigen) {
         this.ipOrigen = ipOrigen;
+    }
+
+    public LocalDateTime getFecha() {
+        return fecha;
+    }
+
+    public void setFecha(LocalDateTime fecha) {
+        this.fecha = fecha;
     }
 
     public String getOperacion() {
@@ -95,25 +101,28 @@ public class LogConexion implements Serializable {
         this.resultado = resultado;
     }
 
-    public LogConexion(Integer codLog, SeguridadMarca seguridadMarca, SeguridadBanco seguridadBanco) {
-        this.codLog = codLog;
-        this.seguridadMarca = seguridadMarca;
-        this.seguridadBanco = seguridadBanco;
-    }
-
     @Override
     public boolean equals(Object o) {
         if (o == null || getClass() != o.getClass()) return false;
-
         LogConexion that = (LogConexion) o;
-        return codLog.equals(that.codLog) && seguridadMarca.equals(that.seguridadMarca) && seguridadBanco.equals(that.seguridadBanco);
+        return Objects.equals(code, that.code);
     }
 
     @Override
     public int hashCode() {
-        int result = codLog.hashCode();
-        result = 31 * result + seguridadMarca.hashCode();
-        result = 31 * result + seguridadBanco.hashCode();
-        return result;
+        return Objects.hashCode(code);
+    }
+
+    @Override
+    public String toString() {
+        return "LogConexion{" +
+                "code=" + code +
+                ", seguridadMarca=" + seguridadMarca +
+                ", seguridadBanco=" + seguridadBanco +
+                ", fecha=" + fecha +
+                ", ipOrigen='" + ipOrigen + '\'' +
+                ", operacion='" + operacion + '\'' +
+                ", resultado='" + resultado + '\'' +
+                '}';
     }
 }
