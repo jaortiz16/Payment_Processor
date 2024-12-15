@@ -37,20 +37,11 @@ public class TransaccionService {
 
     @Transactional
     public Transaccion crearTransaccion(Transaccion transaccion) {
-        // Inicializar estado y fecha
         transaccion.setFechaCreacion(LocalDateTime.now());
-        transaccion.setEstado("PEN"); // Pendiente
-
-        // Guardar transacción
+        transaccion.setEstado("PEN");
         Transaccion transaccionGuardada = this.transaccionRepository.save(transaccion);
-
-        // Registrar estado inicial
         registrarCambioEstado(transaccionGuardada, "PEN", "Transacción creada");
-
-        // Evaluar riesgo de fraude
         String nivelRiesgo = monitoreoFraudeService.evaluarRiesgoTransaccion(transaccionGuardada);
-
-        // Actualizar estado según nivel de riesgo
         if ("ALTO".equals(nivelRiesgo)) {
             actualizarEstadoTransaccion(transaccionGuardada.getCode(), "REV", "Transacción en revisión por riesgo alto");
         }
@@ -74,12 +65,9 @@ public class TransaccionService {
     }
 
     private void validarCambioEstado(String estadoActual, String nuevoEstado) {
-        // Validar transiciones de estado permitidas
         if ("APR".equals(estadoActual) || "REC".equals(estadoActual)) {
             throw new RuntimeException("No se puede cambiar el estado de una transacción finalizada");
         }
-        
-        // Validar estados permitidos
         if (!List.of("PEN", "APR", "REC", "REV").contains(nuevoEstado)) {
             throw new RuntimeException("Estado no válido");
         }

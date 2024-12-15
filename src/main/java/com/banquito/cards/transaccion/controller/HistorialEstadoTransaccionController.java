@@ -31,5 +31,4 @@ public class HistorialEstadoTransaccionController {
             return ResponseEntity.badRequest().build();
         }
     }
-
 } 

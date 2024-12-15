@@ -46,12 +46,9 @@ public class MonitoreoFraudeService {
     }
 
     private String evaluarRegla(Transaccion transaccion, ReglaFraude regla) {
-        // Evaluar límite de monto
         if (transaccion.getMonto().compareTo(regla.getLimiteMontoTotal()) > 0) {
             return "ALTO";
         }
-        
-        // Evaluar límite de transacciones en periodo
         if (excedeLimiteTransacciones(transaccion, regla)) {
             return "ALTO";
         }
@@ -61,9 +58,6 @@ public class MonitoreoFraudeService {
 
     private boolean excedeLimiteTransacciones(Transaccion transaccion, ReglaFraude regla) {
         LocalDateTime fechaInicio = obtenerFechaInicioPeriodo(regla.getPeriodoTiempo());
-        
-        // Aquí iría la lógica para contar transacciones en el periodo
-        // usando el repositorio de transacciones
         return false;
     }
 
