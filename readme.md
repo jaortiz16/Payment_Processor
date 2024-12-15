@@ -1,4 +1,4 @@
-![](Aspose.Words.a46354b6-fcbc-4498-b260-ca2c234afca9.001.jpeg)
+﻿![](/static/Aspose.Words.a46354b6-fcbc-4498-b260-ca2c234afca9.001.jpeg)
 
 **INGENIERÍA EN TECNOLOGÍAS DE LA INFORMACIÓN**
 
@@ -186,22 +186,22 @@ Garantiza que el sistema opere dentro del marco legal y regulatorio del país o 
 ## <a name="_toc228894691"></a>**Dominios**
 1. **Dominio de comisiones**
 
-   ![](Aspose.Words.a46354b6-fcbc-4498-b260-ca2c234afca9.002.png)
+   ![](/static/Aspose.Words.a46354b6-fcbc-4498-b260-ca2c234afca9.002.png)
 
 1. **Dominio de transacciones**
 
-   ![](Aspose.Words.a46354b6-fcbc-4498-b260-ca2c234afca9.003.png)
+   ![](/static/Aspose.Words.a46354b6-fcbc-4498-b260-ca2c234afca9.003.png)
 
 
 
 
 1. **Dominio de fraude**
 
-   ![](Aspose.Words.a46354b6-fcbc-4498-b260-ca2c234afca9.004.png)
+   ![](/static/Aspose.Words.a46354b6-fcbc-4498-b260-ca2c234afca9.004.png)
 
 1. **Dominio de conexiones y registro**
 
-![](Aspose.Words.a46354b6-fcbc-4498-b260-ca2c234afca9.005.png)
+![](/static/Aspose.Words.a46354b6-fcbc-4498-b260-ca2c234afca9.005.png)
 ## <a name="_toc183176453"></a><a name="_toc183641578"></a><a name="_toc279521635"></a>**Componentes Lógicos**
 
 |**Componente**|**Funcionalidad**|**Conexión con Servicios/Componentes**|
@@ -234,5 +234,5 @@ Garantiza que el sistema opere dentro del marco legal y regulatorio del país o 
 |**Monitoreo y Registro**|- Requisito 6: Registro de Conexiones con Bancos y Marcas.<br>` `- Mantener logs detallados de conexiones y actividades del sistema.<br>` `- Registrar resultados de transacciones y eventos para auditorías.|
 
 ## <a name="_toc183641580"></a><a name="_toc1360180899"></a>**Flujo Procesador de Pagos**
-![](Aspose.Words.a46354b6-fcbc-4498-b260-ca2c234afca9.006.png)
+![](/static/Aspose.Words.a46354b6-fcbc-4498-b260-ca2c234afca9.006.png)
 
