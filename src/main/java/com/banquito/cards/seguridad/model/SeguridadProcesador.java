@@ -15,7 +15,6 @@ import java.util.Objects;
 public class SeguridadProcesador implements Serializable {
 
     @Id
-    @NotNull
     @Column(name = "COD_SEGURIDAD_PROCESADOR", nullable = false)
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer code;

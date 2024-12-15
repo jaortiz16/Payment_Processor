@@ -18,7 +18,6 @@ import java.util.Objects;
 public class Transaccion implements Serializable {
 
     @Id
-    @NotNull
     @Column(name = "COD_TRANSACCION", nullable = false)
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer code;

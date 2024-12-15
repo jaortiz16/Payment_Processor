@@ -14,7 +14,6 @@ import java.util.Objects;
 public class HistorialEstadoTransaccion implements Serializable {
 
     @Id
-    @NotNull
     @Column(name = "COD_HISTORIAL_ESTADO", nullable = false)
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer code;

@@ -12,7 +12,6 @@ import java.util.Objects;
 public class SeguridadMarca implements Serializable {
 
     @Id
-    @NotNull
     @Column(name = "MARCA", length = 4, nullable = false)
     private String marca;
     @NotNull

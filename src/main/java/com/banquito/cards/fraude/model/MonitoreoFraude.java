@@ -1,19 +1,17 @@
 package com.banquito.cards.fraude.model;
 
-
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
-
 import java.io.Serializable;
 import java.security.Timestamp;
-import java.util.Date;
+import java.time.LocalDateTime;
+
 
 @Entity
 @Table(name = "MONITOREO_FRAUDE")
 public class MonitoreoFraude implements Serializable {
 
     @Id
-    @NotNull
     @Column(name = "COD_MONITOREO_FRAUDE", nullable = false)
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer code;
@@ -26,7 +24,7 @@ public class MonitoreoFraude implements Serializable {
     @NotNull
     @Temporal(TemporalType.TIMESTAMP)
     @Column(name = "FECHA_DETECCION", nullable = false)
-    private Timestamp fechaDeteccion;
+    private LocalDateTime fechaDeteccion;
 
     public MonitoreoFraude() {}
 
@@ -54,11 +52,11 @@ public class MonitoreoFraude implements Serializable {
         this.riesgo = riesgo;
     }
 
-    public Timestamp getFechaDeteccion() {
+    public LocalDateTime getFechaDeteccion() {
         return fechaDeteccion;
     }
 
-    public void setFechaDeteccion(Timestamp fechaDeteccion) {
+    public void setFechaDeteccion(LocalDateTime fechaDeteccion) {
         this.fechaDeteccion = fechaDeteccion;
     }
 
@@ -80,5 +78,15 @@ public class MonitoreoFraude implements Serializable {
         int result = code.hashCode();
         result = 31 * result + reglaFraude.hashCode();
         return result;
+    }
+
+    @Override
+    public String toString() {
+        return "MonitoreoFraude{" +
+                "code=" + code +
+                ", reglaFraude=" + reglaFraude +
+                ", riesgo='" + riesgo + '\'' +
+                ", fechaDeteccion=" + fechaDeteccion +
+                '}';
     }
 }

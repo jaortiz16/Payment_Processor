@@ -13,7 +13,6 @@ import java.util.Objects;
 public class LogConexion implements Serializable {
 
     @Id
-    @NotNull
     @Column(name = "COD_LOG", nullable = false)
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer code;

@@ -1,14 +1,12 @@
 package com.banquito.cards.fraude.model;
+
 import com.banquito.cards.transaccion.model.Transaccion;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
-
 import java.io.Serializable;
 import java.math.BigDecimal;
 import java.security.Timestamp;
-import java.util.Date;
-import java.math.BigDecimal;
-
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "REGLA_FRAUDE")
@@ -37,11 +35,11 @@ public class ReglaFraude implements Serializable {
     @NotNull
     @Temporal(TemporalType.TIMESTAMP)
     @Column(name = "FECHA_CREACION", nullable = false)
-    private Timestamp fechaCreacion;
+    private LocalDateTime fechaCreacion;
     @NotNull
     @Temporal(TemporalType.TIMESTAMP)
     @Column(name = "FECHA_ACTUALIZACION")
-    private Timestamp fechaActualizacion;
+    private LocalDateTime fechaActualizacion;
 
     public ReglaFraude() {}
 
@@ -93,19 +91,19 @@ public class ReglaFraude implements Serializable {
         this.limiteMontoTotal = limiteMontoTotal;
     }
 
-    public Timestamp getFechaCreacion() {
+    public LocalDateTime getFechaCreacion() {
         return fechaCreacion;
     }
 
-    public void setFechaCreacion(Timestamp fechaCreacion) {
+    public void setFechaCreacion(LocalDateTime fechaCreacion) {
         this.fechaCreacion = fechaCreacion;
     }
 
-    public Timestamp getFechaActualizacion() {
+    public LocalDateTime getFechaActualizacion() {
         return fechaActualizacion;
     }
 
-    public void setFechaActualizacion(Timestamp fechaActualizacion) {
+    public void setFechaActualizacion(LocalDateTime fechaActualizacion) {
         this.fechaActualizacion = fechaActualizacion;
     }
 
@@ -127,6 +125,20 @@ public class ReglaFraude implements Serializable {
         int result = codRegla.hashCode();
         result = 31 * result + transaccion.hashCode();
         return result;
+    }
+
+    @Override
+    public String toString() {
+        return "ReglaFraude{" +
+                "codRegla=" + codRegla +
+                ", transaccion=" + transaccion +
+                ", nombreRegla='" + nombreRegla + '\'' +
+                ", limiteTransacciones=" + limiteTransacciones +
+                ", periodoTiempo='" + periodoTiempo + '\'' +
+                ", limiteMontoTotal=" + limiteMontoTotal +
+                ", fechaCreacion=" + fechaCreacion +
+                ", fechaActualizacion=" + fechaActualizacion +
+                '}';
     }
 }
 

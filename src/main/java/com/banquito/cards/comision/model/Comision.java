@@ -1,11 +1,8 @@
 package com.banquito.cards.comision.model;
 
-
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
-
 import java.io.Serializable;
-import java.util.List;
 import java.math.BigDecimal;
 import java.util.Objects;
 
@@ -14,7 +11,6 @@ import java.util.Objects;
 public class Comision implements Serializable {
 
     @Id
-    @NotNull
     @Column(name = "COD_COMISION", nullable = false, length = 20)
     private String codComision;
     @NotNull
@@ -87,5 +83,16 @@ public class Comision implements Serializable {
     @Override
     public int hashCode() {
         return Objects.hashCode(codComision);
+    }
+
+    @Override
+    public String toString() {
+        return "Comision{" +
+                "codComision='" + codComision + '\'' +
+                ", tipo='" + tipo + '\'' +
+                ", montoBase=" + montoBase +
+                ", transaccionesBase=" + transaccionesBase +
+                ", manejaSegmentos=" + manejaSegmentos +
+                '}';
     }
 }

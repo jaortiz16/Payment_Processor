@@ -1,19 +1,16 @@
 package com.banquito.cards.comision.model;
 
-
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
-
 import java.io.Serializable;
 import java.math.BigDecimal;
 import java.util.Objects;
+
 @Embeddable
 public class ComisionPK implements Serializable {
 
-    @NotNull
     @Column(name = "COD_COMISION",nullable = false, length = 20)
     private Integer codComision;
-    @NotNull
     @Column(name = "TRANSACCIONES_DESDE", precision = 9, scale = 0, nullable = false)
     private BigDecimal codSegmento;
 

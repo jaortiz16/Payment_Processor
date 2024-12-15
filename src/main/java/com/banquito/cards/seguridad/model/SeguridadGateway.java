@@ -13,7 +13,6 @@ import java.util.Objects;
 public class SeguridadGateway implements Serializable {
 
     @Id
-    @NotNull
     @Column(name = "COD_CLAVE_GATEWAY", nullable = false)
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer code;
