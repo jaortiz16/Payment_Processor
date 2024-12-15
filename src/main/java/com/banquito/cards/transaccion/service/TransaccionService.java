@@ -4,6 +4,7 @@ import com.banquito.cards.transaccion.model.Transaccion;
 import com.banquito.cards.transaccion.model.HistorialEstadoTransaccion;
 import com.banquito.cards.transaccion.repository.HistorialEstadoTransaccionRepository;
 import com.banquito.cards.transaccion.repository.TransaccionRepository;
+import com.banquito.cards.fraude.service.MonitoreoFraudeService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,11 +17,14 @@ public class TransaccionService {
 
     private final TransaccionRepository transaccionRepository;
     private final HistorialEstadoTransaccionRepository historialRepository;
+    private final MonitoreoFraudeService monitoreoFraudeService;
 
     public TransaccionService(TransaccionRepository transaccionRepository,
-                            HistorialEstadoTransaccionRepository historialRepository) {
+                            HistorialEstadoTransaccionRepository historialRepository,
+                            MonitoreoFraudeService monitoreoFraudeService) {
         this.transaccionRepository = transaccionRepository;
         this.historialRepository = historialRepository;
+        this.monitoreoFraudeService = monitoreoFraudeService;
     }
 
     public List<Transaccion> obtenerTodasLasTransacciones() {
@@ -33,20 +37,24 @@ public class TransaccionService {
 
     @Transactional
     public Transaccion crearTransaccion(Transaccion transaccion) {
+        // Inicializar estado y fecha
         transaccion.setFechaCreacion(LocalDateTime.now());
         transaccion.setEstado("PEN"); // Pendiente
-        
+
+        // Guardar transacción
         Transaccion transaccionGuardada = this.transaccionRepository.save(transaccion);
-        
-        // Registrar el estado inicial
-        HistorialEstadoTransaccion historial = new HistorialEstadoTransaccion();
-        historial.setTransaccion(transaccionGuardada);
-        historial.setEstado("PEN");
-        historial.setFechaEstadoCambio(LocalDateTime.now());
-        historial.setDetalle("Transacción creada");
-        
-        this.historialRepository.save(historial);
-        
+
+        // Registrar estado inicial
+        registrarCambioEstado(transaccionGuardada, "PEN", "Transacción creada");
+
+        // Evaluar riesgo de fraude
+        String nivelRiesgo = monitoreoFraudeService.evaluarRiesgoTransaccion(transaccionGuardada);
+
+        // Actualizar estado según nivel de riesgo
+        if ("ALTO".equals(nivelRiesgo)) {
+            actualizarEstadoTransaccion(transaccionGuardada.getCode(), "REV", "Transacción en revisión por riesgo alto");
+        }
+
         return transaccionGuardada;
     }
 
@@ -54,20 +62,36 @@ public class TransaccionService {
     public Transaccion actualizarEstadoTransaccion(Integer id, String nuevoEstado, String detalle) {
         Transaccion transaccion = this.transaccionRepository.findById(id)
             .orElseThrow(() -> new RuntimeException("Transacción no encontrada"));
-        
+
+        validarCambioEstado(transaccion.getEstado(), nuevoEstado);
+
         transaccion.setEstado(nuevoEstado);
-        transaccion.setDetalle(detalle);
-        
-        // Registrar el cambio de estado
-        HistorialEstadoTransaccion historial = new HistorialEstadoTransaccion();
-        historial.setTransaccion(transaccion);
-        historial.setEstado(nuevoEstado);
-        historial.setFechaEstadoCambio(LocalDateTime.now());
-        historial.setDetalle(detalle);
-        
-        this.historialRepository.save(historial);
-        
-        return this.transaccionRepository.save(transaccion);
+        transaccion = this.transaccionRepository.save(transaccion);
+
+        registrarCambioEstado(transaccion, nuevoEstado, detalle);
+
+        return transaccion;
     }
 
+    private void validarCambioEstado(String estadoActual, String nuevoEstado) {
+        // Validar transiciones de estado permitidas
+        if ("APR".equals(estadoActual) || "REC".equals(estadoActual)) {
+            throw new RuntimeException("No se puede cambiar el estado de una transacción finalizada");
+        }
+        
+        // Validar estados permitidos
+        if (!List.of("PEN", "APR", "REC", "REV").contains(nuevoEstado)) {
+            throw new RuntimeException("Estado no válido");
+        }
+    }
+
+    private void registrarCambioEstado(Transaccion transaccion, String estado, String detalle) {
+        HistorialEstadoTransaccion historial = new HistorialEstadoTransaccion();
+        historial.setTransaccion(transaccion);
+        historial.setEstado(estado);
+        historial.setFechaEstadoCambio(LocalDateTime.now());
+        historial.setDetalle(detalle);
+
+        this.historialRepository.save(historial);
+    }
 }

@@ -18,7 +18,7 @@ public class ReglaFraude implements Serializable {
     private Integer codRegla;
     @NotNull
     @ManyToOne
-    @JoinColumn(name = "COD_TRANSACCION", referencedColumnName = "COD_TRANSACCION", insertable = false, updatable = false)
+    @JoinColumn(name = "COD_TRANSACCION", referencedColumnName = "COD_TRANSACCION")
     private Transaccion transaccion;
     @NotNull
     @Column(name = "NOMBRE_REGLA", length = 50, nullable = false)

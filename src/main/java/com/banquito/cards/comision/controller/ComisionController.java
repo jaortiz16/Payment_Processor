@@ -6,6 +6,7 @@ import com.banquito.cards.comision.service.ComisionService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 @RestController
@@ -32,7 +33,11 @@ public class ComisionController {
 
     @PostMapping
     public ResponseEntity<Comision> crear(@RequestBody Comision comision) {
-        return ResponseEntity.ok(comisionService.crear(comision));
+        try {
+            return ResponseEntity.ok(comisionService.crear(comision));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(null);
+        }
     }
 
     @PutMapping("/{id}")
@@ -40,7 +45,7 @@ public class ComisionController {
         try {
             return ResponseEntity.ok(comisionService.actualizar(id, comision));
         } catch (RuntimeException e) {
-            return ResponseEntity.notFound().build();
+            return ResponseEntity.badRequest().body(null);
         }
     }
 
@@ -51,7 +56,20 @@ public class ComisionController {
         try {
             return ResponseEntity.ok(comisionService.agregarSegmento(id, segmento));
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().build();
+            return ResponseEntity.badRequest().body(null);
+        }
+    }
+
+    @GetMapping("/{id}/calcular")
+    public ResponseEntity<BigDecimal> calcularComision(
+            @PathVariable Integer id,
+            @RequestParam Integer numTransacciones,
+            @RequestParam BigDecimal montoTransaccion) {
+        try {
+            return ResponseEntity.ok(
+                comisionService.calcularComision(id, numTransacciones, montoTransaccion));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(null);
         }
     }
 } 

@@ -23,17 +23,58 @@ public class MonitoreoFraudeService {
         this.reglaFraudeService = reglaFraudeService;
     }
 
+    @Transactional
+    public String evaluarRiesgoTransaccion(Transaccion transaccion) {
+        List<ReglaFraude> reglas = reglaFraudeService.obtenerTodasLasReglas();
+        String nivelRiesgoMaximo = "BAJO";
+
+        for (ReglaFraude regla : reglas) {
+            String riesgoActual = evaluarRegla(transaccion, regla);
+            if ("ALTO".equals(riesgoActual)) {
+                registrarAlerta(regla, "ALTO");
+                return "ALTO";
+            } else if ("MEDIO".equals(riesgoActual) && !"ALTO".equals(nivelRiesgoMaximo)) {
+                nivelRiesgoMaximo = "MEDIO";
+            }
+        }
+
+        if (!"BAJO".equals(nivelRiesgoMaximo)) {
+            registrarAlerta(reglas.get(0), nivelRiesgoMaximo);
+        }
+
+        return nivelRiesgoMaximo;
+    }
+
     private String evaluarRegla(Transaccion transaccion, ReglaFraude regla) {
         // Evaluar límite de monto
         if (transaccion.getMonto().compareTo(regla.getLimiteMontoTotal()) > 0) {
             return "ALTO";
         }
         
-        // Aquí se pueden agregar más validaciones según el tipo de regla
-        // Por ejemplo, verificar cantidad de transacciones en un período
-        // o validar ubicación geográfica
-        
+        // Evaluar límite de transacciones en periodo
+        if (excedeLimiteTransacciones(transaccion, regla)) {
+            return "ALTO";
+        }
+
         return "BAJO";
+    }
+
+    private boolean excedeLimiteTransacciones(Transaccion transaccion, ReglaFraude regla) {
+        LocalDateTime fechaInicio = obtenerFechaInicioPeriodo(regla.getPeriodoTiempo());
+        
+        // Aquí iría la lógica para contar transacciones en el periodo
+        // usando el repositorio de transacciones
+        return false;
+    }
+
+    private LocalDateTime obtenerFechaInicioPeriodo(String periodoTiempo) {
+        LocalDateTime ahora = LocalDateTime.now();
+        return switch (periodoTiempo) {
+            case "HOR" -> ahora.minusHours(1);
+            case "DIA" -> ahora.minusDays(1);
+            case "SEM" -> ahora.minusWeeks(1);
+            default -> ahora.minusDays(1);
+        };
     }
 
     @Transactional
@@ -45,5 +86,4 @@ public class MonitoreoFraudeService {
         
         return monitoreoFraudeRepository.save(monitoreo);
     }
-
 }

@@ -5,8 +5,6 @@ import com.banquito.cards.seguridad.service.SeguridadService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
-
 @RestController
 @RequestMapping("/api/v1/seguridad")
 public class SeguridadController {
@@ -17,10 +15,13 @@ public class SeguridadController {
         this.seguridadService = seguridadService;
     }
 
-    // Endpoints para SeguridadBanco
     @PostMapping("/bancos")
     public ResponseEntity<SeguridadBanco> crearSeguridadBanco(@RequestBody SeguridadBanco seguridadBanco) {
-        return ResponseEntity.ok(seguridadService.crearSeguridadBanco(seguridadBanco));
+        try {
+            return ResponseEntity.ok(seguridadService.crearSeguridadBanco(seguridadBanco));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().build();
+        }
     }
 
     @GetMapping("/bancos/{id}")
@@ -30,35 +31,38 @@ public class SeguridadController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    // Endpoints para SeguridadMarca
     @PutMapping("/marcas/{marca}")
     public ResponseEntity<SeguridadMarca> actualizarSeguridadMarca(
             @PathVariable String marca,
             @RequestParam String nuevaClave) {
-        return ResponseEntity.ok(seguridadService.actualizarSeguridadMarca(marca, nuevaClave));
+        try {
+            return ResponseEntity.ok(seguridadService.actualizarSeguridadMarca(marca, nuevaClave));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().build();
+        }
     }
 
-    // Endpoints para SeguridadGateway
     @PostMapping("/gateways")
     public ResponseEntity<SeguridadGateway> crearSeguridadGateway(
             @RequestBody SeguridadGateway seguridadGateway) {
-        return ResponseEntity.ok(seguridadService.crearSeguridadGateway(seguridadGateway));
+        try {
+            return ResponseEntity.ok(seguridadService.crearSeguridadGateway(seguridadGateway));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().build();
+        }
     }
 
-    // Endpoints para SeguridadProcesador
     @PutMapping("/procesadores/{id}")
     public ResponseEntity<SeguridadProcesador> actualizarSeguridadProcesador(
             @PathVariable Integer id,
             @RequestParam String nuevaClave) {
         try {
-            return ResponseEntity.ok(
-                    seguridadService.actualizarSeguridadProcesador(id, nuevaClave));
+            return ResponseEntity.ok(seguridadService.actualizarSeguridadProcesador(id, nuevaClave));
         } catch (RuntimeException e) {
-            return ResponseEntity.notFound().build();
+            return ResponseEntity.badRequest().build();
         }
     }
 
-    // Endpoints para LogConexion
     @PostMapping("/logs")
     public ResponseEntity<LogConexion> registrarConexion(
             @RequestParam String marca,

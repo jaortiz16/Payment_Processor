@@ -38,8 +38,6 @@ public class HistorialEstadoTransaccionService {
         historial.setEstado(nuevoEstado);
         historial.setFechaEstadoCambio(LocalDateTime.now());
         historial.setDetalle(detalle);
-
-        // Actualizar el estado de la transacción
         transaccion.setEstado(nuevoEstado);
         transaccion.setDetalle(detalle);
         transaccionRepository.save(transaccion);

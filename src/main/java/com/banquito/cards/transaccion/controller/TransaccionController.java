@@ -32,7 +32,11 @@ public class TransaccionController {
 
     @PostMapping
     public ResponseEntity<Transaccion> crearTransaccion(@RequestBody Transaccion transaccion) {
-        return ResponseEntity.ok(transaccionService.crearTransaccion(transaccion));
+        try {
+            return ResponseEntity.ok(transaccionService.crearTransaccion(transaccion));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().build();
+        }
     }
 
     @PutMapping("/{id}/estado")
@@ -42,9 +46,10 @@ public class TransaccionController {
             @RequestParam(required = false) String detalle) {
         try {
             return ResponseEntity.ok(
-                    transaccionService.actualizarEstadoTransaccion(id, nuevoEstado, detalle));
+                    transaccionService.actualizarEstadoTransaccion(id, nuevoEstado, 
+                        detalle != null ? detalle : "Cambio de estado manual"));
         } catch (RuntimeException e) {
-            return ResponseEntity.notFound().build();
+            return ResponseEntity.badRequest().build();
         }
     }
 } 

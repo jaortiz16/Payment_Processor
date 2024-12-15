@@ -32,21 +32,30 @@ public class SeguridadService {
         this.logConexionRepository = logConexionRepository;
     }
 
-    // Métodos para SeguridadBanco
     @Transactional
     public SeguridadBanco crearSeguridadBanco(SeguridadBanco seguridadBanco) {
+        validarCredencialesBanco(seguridadBanco);
         seguridadBanco.setFechaActualizacion(LocalDateTime.now());
         seguridadBanco.setEstado("ACT");
         return seguridadBancoRepository.save(seguridadBanco);
+    }
+
+    private void validarCredencialesBanco(SeguridadBanco seguridadBanco) {
+        if (seguridadBanco.getClave() == null || seguridadBanco.getClave().length() < 8) {
+            throw new RuntimeException("La clave debe tener al menos 8 caracteres");
+        }
     }
 
     public Optional<SeguridadBanco> obtenerSeguridadBancoPorId(Integer id) {
         return seguridadBancoRepository.findById(id);
     }
 
-    // Métodos para SeguridadMarca
     @Transactional
     public SeguridadMarca actualizarSeguridadMarca(String marca, String nuevaClave) {
+        if (nuevaClave == null || nuevaClave.length() < 8) {
+            throw new RuntimeException("La clave debe tener al menos 8 caracteres");
+        }
+
         SeguridadMarca seguridadMarca = seguridadMarcaRepository.findById(marca)
                 .orElseGet(() -> new SeguridadMarca(marca));
         
@@ -55,17 +64,26 @@ public class SeguridadService {
         return seguridadMarcaRepository.save(seguridadMarca);
     }
 
-    // Métodos para SeguridadGateway
     @Transactional
     public SeguridadGateway crearSeguridadGateway(SeguridadGateway seguridadGateway) {
+        validarCredencialesGateway(seguridadGateway);
         seguridadGateway.setFechaCreacion(LocalDateTime.now());
         seguridadGateway.setEstado("ACT");
         return seguridadGatewayRepository.save(seguridadGateway);
     }
 
-    // Métodos para SeguridadProcesador
+    private void validarCredencialesGateway(SeguridadGateway seguridadGateway) {
+        if (seguridadGateway.getClave() == null || seguridadGateway.getClave().length() < 8) {
+            throw new RuntimeException("La clave debe tener al menos 8 caracteres");
+        }
+    }
+
     @Transactional
     public SeguridadProcesador actualizarSeguridadProcesador(Integer id, String nuevaClave) {
+        if (nuevaClave == null || nuevaClave.length() < 8) {
+            throw new RuntimeException("La clave debe tener al menos 8 caracteres");
+        }
+
         SeguridadProcesador procesador = seguridadProcesadorRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Seguridad de procesador no encontrada"));
         
@@ -74,20 +92,39 @@ public class SeguridadService {
         return seguridadProcesadorRepository.save(procesador);
     }
 
-    // Métodos para LogConexion
     @Transactional
     public LogConexion registrarConexion(String marca, Integer codBanco, String ipOrigen, 
                                        String operacion, String resultado) {
+        // Validar que existan la marca y el banco
+        SeguridadMarca seguridadMarca = seguridadMarcaRepository.findById(marca)
+                .orElseThrow(() -> new RuntimeException("Marca no encontrada"));
+        
+        SeguridadBanco seguridadBanco = seguridadBancoRepository.findById(codBanco)
+                .orElseThrow(() -> new RuntimeException("Banco no encontrado"));
+
+        // Validar el estado de las credenciales
+        validarEstadoCredenciales(seguridadBanco);
+
+        // Crear y guardar el log
         LogConexion log = new LogConexion();
-        log.setSeguridadMarca(seguridadMarcaRepository.findById(marca)
-                .orElseThrow(() -> new RuntimeException("Marca no encontrada")));
-        log.setSeguridadBanco(seguridadBancoRepository.findById(codBanco)
-                .orElseThrow(() -> new RuntimeException("Banco no encontrado")));
+        log.setSeguridadMarca(seguridadMarca);
+        log.setSeguridadBanco(seguridadBanco);
         log.setIpOrigen(ipOrigen);
         log.setOperacion(operacion);
         log.setResultado(resultado);
         log.setFecha(LocalDateTime.now());
         
         return logConexionRepository.save(log);
+    }
+
+    private void validarEstadoCredenciales(SeguridadBanco seguridadBanco) {
+        if (!"ACT".equals(seguridadBanco.getEstado())) {
+            throw new RuntimeException("Las credenciales del banco están inactivas");
+        }
+
+        // Validar fecha de última actualización
+        if (seguridadBanco.getFechaActualizacion().plusMonths(3).isBefore(LocalDateTime.now())) {
+            throw new RuntimeException("Las credenciales del banco han expirado");
+        }
     }
 } 

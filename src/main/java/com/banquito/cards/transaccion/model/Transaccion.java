@@ -23,11 +23,11 @@ public class Transaccion implements Serializable {
     private Integer code;
     @NotNull
     @ManyToOne
-    @JoinColumn(name = "COD_BANCO", referencedColumnName = "COD_BANCO", insertable = false, updatable = false)
+    @JoinColumn(name = "COD_BANCO", referencedColumnName = "COD_BANCO")
     private Banco banco;
     @NotNull
     @ManyToOne
-    @JoinColumn(name = "COD_COMISION", referencedColumnName = "COD_COMISION", insertable = false, updatable = false)
+    @JoinColumn(name = "COD_COMISION", referencedColumnName = "COD_COMISION")
     private Comision comision;
     @NotNull
     @Column(name = "MONTO", precision = 18, scale = 2, nullable = false)
