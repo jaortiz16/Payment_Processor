@@ -46,12 +46,6 @@ public class FraudeController {
         }
     }
 
-    @GetMapping("/reglas/{id}/monitoreos")
-    public ResponseEntity<List<MonitoreoFraude>> obtenerMonitoreosPorRegla(
-            @PathVariable Integer id) {
-        return ResponseEntity.ok(fraudeService.obtenerMonitoreosPorRegla(id));
-    }
-
     @PostMapping("/reglas/{id}/monitoreos")
     public ResponseEntity<MonitoreoFraude> registrarMonitoreo(
             @PathVariable Integer id,

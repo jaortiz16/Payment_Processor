@@ -90,12 +90,4 @@ public class SeguridadService {
         
         return logConexionRepository.save(log);
     }
-
-    public List<LogConexion> obtenerLogsPorBanco(Integer codBanco) {
-        return logConexionRepository.findBySeguridadBancoCode(codBanco);
-    }
-
-    public List<LogConexion> obtenerLogsPorMarca(String marca) {
-        return logConexionRepository.findBySeguridadMarcaMarca(marca);
-    }
 } 

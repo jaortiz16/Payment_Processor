@@ -22,11 +22,6 @@ public class ReglaFraudeController {
         return ResponseEntity.ok(reglaFraudeService.obtenerTodasLasReglas());
     }
 
-    @GetMapping("/activas")
-    public ResponseEntity<List<ReglaFraude>> obtenerReglasActivas() {
-        return ResponseEntity.ok(reglaFraudeService.obtenerReglasActivas());
-    }
-
     @GetMapping("/{id}")
     public ResponseEntity<ReglaFraude> obtenerReglaPorId(@PathVariable Integer id) {
         return reglaFraudeService.obtenerReglaPorId(id)

@@ -33,31 +33,4 @@ public class LogConexionController {
             return ResponseEntity.badRequest().build();
         }
     }
-
-    @GetMapping("/banco/{codBanco}")
-    public ResponseEntity<List<LogConexion>> obtenerLogsPorBanco(@PathVariable Integer codBanco) {
-        return ResponseEntity.ok(logConexionService.obtenerLogsPorBanco(codBanco));
-    }
-
-    @GetMapping("/marca/{marca}")
-    public ResponseEntity<List<LogConexion>> obtenerLogsPorMarca(@PathVariable String marca) {
-        return ResponseEntity.ok(logConexionService.obtenerLogsPorMarca(marca));
-    }
-
-    @GetMapping("/fecha")
-    public ResponseEntity<List<LogConexion>> obtenerLogsPorFecha(
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime fechaInicio,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime fechaFin) {
-        return ResponseEntity.ok(logConexionService.obtenerLogsPorFecha(fechaInicio, fechaFin));
-    }
-
-    @GetMapping("/resultado/{resultado}")
-    public ResponseEntity<List<LogConexion>> obtenerLogsPorResultado(@PathVariable String resultado) {
-        return ResponseEntity.ok(logConexionService.obtenerLogsPorResultado(resultado));
-    }
-
-    @GetMapping("/operacion/{operacion}")
-    public ResponseEntity<List<LogConexion>> obtenerLogsPorOperacion(@PathVariable String operacion) {
-        return ResponseEntity.ok(logConexionService.obtenerLogsPorOperacion(operacion));
-    }
 } 

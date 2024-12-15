@@ -23,20 +23,6 @@ public class MonitoreoFraudeService {
         this.reglaFraudeService = reglaFraudeService;
     }
 
-    @Transactional
-    public MonitoreoFraude evaluarTransaccion(Transaccion transaccion) {
-        // Obtener todas las reglas activas
-        List<ReglaFraude> reglas = reglaFraudeService.obtenerReglasActivas();
-        
-        for (ReglaFraude regla : reglas) {
-            String nivelRiesgo = evaluarRegla(transaccion, regla);
-            if (!"BAJO".equals(nivelRiesgo)) {
-                return registrarAlerta(regla, nivelRiesgo);
-            }
-        }
-        return null;
-    }
-
     private String evaluarRegla(Transaccion transaccion, ReglaFraude regla) {
         // Evaluar límite de monto
         if (transaccion.getMonto().compareTo(regla.getLimiteMontoTotal()) > 0) {
@@ -60,11 +46,4 @@ public class MonitoreoFraudeService {
         return monitoreoFraudeRepository.save(monitoreo);
     }
 
-    public List<MonitoreoFraude> obtenerAlertasPorFecha(LocalDateTime fechaInicio, LocalDateTime fechaFin) {
-        return monitoreoFraudeRepository.findByFechaDeteccionBetween(fechaInicio, fechaFin);
-    }
-
-    public List<MonitoreoFraude> obtenerAlertasPorNivelRiesgo(String riesgo) {
-        return monitoreoFraudeRepository.findByRiesgo(riesgo);
-    }
 }

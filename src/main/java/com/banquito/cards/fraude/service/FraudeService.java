@@ -52,10 +52,6 @@ public class FraudeService {
         return this.reglaFraudeRepository.save(reglaExistente);
     }
 
-    public List<MonitoreoFraude> obtenerMonitoreosPorRegla(Integer reglaId) {
-        return this.monitoreoFraudeRepository.findByReglaFraudeCodRegla(reglaId);
-    }
-
     @Transactional
     public MonitoreoFraude registrarMonitoreo(Integer reglaId, String riesgo) {
         ReglaFraude regla = this.reglaFraudeRepository.findById(reglaId)

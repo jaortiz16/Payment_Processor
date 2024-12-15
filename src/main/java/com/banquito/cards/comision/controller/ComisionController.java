@@ -44,11 +44,6 @@ public class ComisionController {
         }
     }
 
-    @GetMapping("/{id}/segmentos")
-    public ResponseEntity<List<ComisionSegmento>> obtenerSegmentos(@PathVariable String id) {
-        return ResponseEntity.ok(comisionService.obtenerSegmentosPorComision(id));
-    }
-
     @PostMapping("/{id}/segmentos")
     public ResponseEntity<ComisionSegmento> agregarSegmento(
             @PathVariable Integer id,

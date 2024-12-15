@@ -73,14 +73,4 @@ public class SeguridadController {
             return ResponseEntity.badRequest().build();
         }
     }
-
-    @GetMapping("/logs/bancos/{codBanco}")
-    public ResponseEntity<List<LogConexion>> obtenerLogsPorBanco(@PathVariable Integer codBanco) {
-        return ResponseEntity.ok(seguridadService.obtenerLogsPorBanco(codBanco));
-    }
-
-    @GetMapping("/logs/marcas/{marca}")
-    public ResponseEntity<List<LogConexion>> obtenerLogsPorMarca(@PathVariable String marca) {
-        return ResponseEntity.ok(seguridadService.obtenerLogsPorMarca(marca));
-    }
 } 

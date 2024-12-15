@@ -48,10 +48,6 @@ public class ComisionService {
         return this.comisionRepository.save(comisionExistente);
     }
 
-    public List<ComisionSegmento> obtenerSegmentosPorComision(String comisionId) {
-        return this.comisionSegmentoRepository.findByComisionCodComision(comisionId);
-    }
-
     @Transactional
     public ComisionSegmento agregarSegmento(Integer comisionId, ComisionSegmento segmento) {
         Comision comision = this.comisionRepository.findById(comisionId)

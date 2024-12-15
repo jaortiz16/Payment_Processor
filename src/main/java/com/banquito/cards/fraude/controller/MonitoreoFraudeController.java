@@ -19,26 +19,4 @@ public class MonitoreoFraudeController {
     public MonitoreoFraudeController(MonitoreoFraudeService monitoreoFraudeService) {
         this.monitoreoFraudeService = monitoreoFraudeService;
     }
-
-    @PostMapping("/evaluar")
-    public ResponseEntity<MonitoreoFraude> evaluarTransaccion(@RequestBody Transaccion transaccion) {
-        MonitoreoFraude alerta = monitoreoFraudeService.evaluarTransaccion(transaccion);
-        if (alerta != null) {
-            return ResponseEntity.ok(alerta);
-        }
-        return ResponseEntity.noContent().build();
-    }
-
-    @GetMapping("/alertas/fecha")
-    public ResponseEntity<List<MonitoreoFraude>> obtenerAlertasPorFecha(
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime fechaInicio,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime fechaFin) {
-        return ResponseEntity.ok(monitoreoFraudeService.obtenerAlertasPorFecha(fechaInicio, fechaFin));
-    }
-
-    @GetMapping("/alertas/riesgo/{nivel}")
-    public ResponseEntity<List<MonitoreoFraude>> obtenerAlertasPorNivelRiesgo(
-            @PathVariable String nivel) {
-        return ResponseEntity.ok(monitoreoFraudeService.obtenerAlertasPorNivelRiesgo(nivel));
-    }
 } 

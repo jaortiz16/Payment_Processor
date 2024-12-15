@@ -52,24 +52,4 @@ public class LogConexionService {
 
         return logConexionRepository.save(log);
     }
-
-    public List<LogConexion> obtenerLogsPorBanco(Integer codBanco) {
-        return logConexionRepository.findBySeguridadBancoCode(codBanco);
-    }
-
-    public List<LogConexion> obtenerLogsPorMarca(String marca) {
-        return logConexionRepository.findBySeguridadMarcaMarca(marca);
-    }
-
-    public List<LogConexion> obtenerLogsPorFecha(LocalDateTime fechaInicio, LocalDateTime fechaFin) {
-        return logConexionRepository.findByFechaBetweenOrderByFechaDesc(fechaInicio, fechaFin);
-    }
-
-    public List<LogConexion> obtenerLogsPorResultado(String resultado) {
-        return logConexionRepository.findByResultado(resultado);
-    }
-
-    public List<LogConexion> obtenerLogsPorOperacion(String operacion) {
-        return logConexionRepository.findByOperacion(operacion);
-    }
 }

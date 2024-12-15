@@ -47,22 +47,4 @@ public class TransaccionController {
             return ResponseEntity.notFound().build();
         }
     }
-
-    @GetMapping("/{id}/historial")
-    public ResponseEntity<List<HistorialEstadoTransaccion>> obtenerHistorial(
-            @PathVariable Integer id) {
-        return ResponseEntity.ok(transaccionService.obtenerHistorialTransaccion(id));
-    }
-
-    @GetMapping("/estado/{estado}")
-    public ResponseEntity<List<Transaccion>> obtenerPorEstado(
-            @PathVariable String estado) {
-        return ResponseEntity.ok(transaccionService.obtenerTransaccionesPorEstado(estado));
-    }
-
-    @GetMapping("/banco/{codBanco}")
-    public ResponseEntity<List<Transaccion>> obtenerPorBanco(
-            @PathVariable Integer codBanco) {
-        return ResponseEntity.ok(transaccionService.obtenerTransaccionesPorBanco(codBanco));
-    }
 } 

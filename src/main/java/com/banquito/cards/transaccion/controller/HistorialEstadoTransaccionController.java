@@ -32,22 +32,4 @@ public class HistorialEstadoTransaccionController {
         }
     }
 
-    @GetMapping("/transacciones/{transaccionId}")
-    public ResponseEntity<List<HistorialEstadoTransaccion>> obtenerHistorialPorTransaccion(
-            @PathVariable Integer transaccionId) {
-        return ResponseEntity.ok(historialService.obtenerHistorialPorTransaccion(transaccionId));
-    }
-
-    @GetMapping("/estados/{estado}")
-    public ResponseEntity<List<HistorialEstadoTransaccion>> obtenerHistorialPorEstado(
-            @PathVariable String estado) {
-        return ResponseEntity.ok(historialService.obtenerHistorialPorEstado(estado));
-    }
-
-    @GetMapping("/fecha")
-    public ResponseEntity<List<HistorialEstadoTransaccion>> obtenerHistorialPorFecha(
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime fechaInicio,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime fechaFin) {
-        return ResponseEntity.ok(historialService.obtenerHistorialPorFecha(fechaInicio, fechaFin));
-    }
 } 

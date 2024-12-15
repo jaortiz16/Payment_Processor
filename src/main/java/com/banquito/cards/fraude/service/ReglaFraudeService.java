@@ -22,10 +22,7 @@ public class ReglaFraudeService {
         return reglaFraudeRepository.findAll();
     }
 
-    public List<ReglaFraude> obtenerReglasActivas() {
-        // Implementar método en repository para obtener reglas activas
-        return reglaFraudeRepository.findByEstadoOrderByPrioridadDesc("ACT");
-    }
+
 
     public Optional<ReglaFraude> obtenerReglaPorId(Integer id) {
         return reglaFraudeRepository.findById(id);

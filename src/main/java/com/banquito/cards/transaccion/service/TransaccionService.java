@@ -70,15 +70,4 @@ public class TransaccionService {
         return this.transaccionRepository.save(transaccion);
     }
 
-    public List<HistorialEstadoTransaccion> obtenerHistorialTransaccion(Integer transaccionId) {
-        return this.historialRepository.findByTransaccionCodeOrderByFechaEstadoCambioDesc(transaccionId);
-    }
-
-    public List<Transaccion> obtenerTransaccionesPorEstado(String estado) {
-        return this.transaccionRepository.findByEstado(estado);
-    }
-
-    public List<Transaccion> obtenerTransaccionesPorBanco(Integer codBanco) {
-        return this.transaccionRepository.findByBancoCodBanco(codBanco);
-    }
 }

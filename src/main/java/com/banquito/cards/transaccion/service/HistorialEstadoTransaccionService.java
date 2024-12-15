@@ -47,20 +47,6 @@ public class HistorialEstadoTransaccionService {
         return historialRepository.save(historial);
     }
 
-    public List<HistorialEstadoTransaccion> obtenerHistorialPorTransaccion(Integer transaccionId) {
-        return historialRepository.findByTransaccionCodeOrderByFechaEstadoCambioDesc(transaccionId);
-    }
-
-    public List<HistorialEstadoTransaccion> obtenerHistorialPorEstado(String estado) {
-        return historialRepository.findByEstado(estado);
-    }
-
-    public List<HistorialEstadoTransaccion> obtenerHistorialPorFecha(
-            LocalDateTime fechaInicio, LocalDateTime fechaFin) {
-        return historialRepository.findByFechaEstadoCambioBetweenOrderByFechaEstadoCambioDesc(
-                fechaInicio, fechaFin);
-    }
-
     private void validarTransicionEstado(String estadoActual, String nuevoEstado) {
         // Implementar lógica de validación de transiciones de estado permitidas
         // Por ejemplo:
