@@ -14,13 +14,12 @@ import java.util.Objects;
 public class HistorialEstadoTransaccion implements Serializable {
 
     @Id
-    @NotNull
-    @Column(name = "COD_HISTORIAL_ESTADO", nullable = false)
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "COD_HISTORIAL_ESTADO", nullable = false)
     private Integer code;
     @NotNull
     @ManyToOne
-    @JoinColumn(name = "COD_TRANSACCION", referencedColumnName = "COD_TRANSACCION", insertable = false, updatable = false)
+    @JoinColumn(name = "COD_TRANSACCION", referencedColumnName = "COD_TRANSACCION")
     private Transaccion transaccion;
     @NotNull
     @Column(name = "ESTADO", length = 3, nullable = false)

@@ -1,12 +1,9 @@
 package com.banquito.cards.comision.model;
 
-
-
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
-
 import java.io.Serializable;
-import java.security.Timestamp;
+import java.time.LocalDateTime;
 import java.util.Objects;
 
 @Entity
@@ -14,7 +11,6 @@ import java.util.Objects;
 public class Banco implements Serializable {
 
     @Id
-    @NotNull
     @Column(name = "COD_BANCO", nullable = false)
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer codBanco;
@@ -33,7 +29,7 @@ public class Banco implements Serializable {
     @NotNull
     @Temporal(TemporalType.TIMESTAMP)
     @Column(name = "FECHA_CREACION", nullable = false)
-    private Timestamp fechaCreacion;
+    private LocalDateTime fechaCreacion;
     @ManyToOne
     @JoinColumn(name = "COD_COMISION", referencedColumnName = "COD_COMISION", insertable = false, updatable = false)
     private Comision comision;
@@ -42,7 +38,7 @@ public class Banco implements Serializable {
     private String estado;
     @Temporal(TemporalType.TIMESTAMP)
     @Column(name = "FECHA_INACTIVACION")
-    private Timestamp fechaInactivacion;
+    private LocalDateTime fechaInactivacion;
 
     public Banco() {}
 
@@ -90,11 +86,11 @@ public class Banco implements Serializable {
         this.nombreComercial = nombreComercial;
     }
 
-    public Timestamp getFechaCreacion() {
+    public LocalDateTime getFechaCreacion() {
         return fechaCreacion;
     }
 
-    public void setFechaCreacion(Timestamp fechaCreacion) {
+    public void setFechaCreacion(LocalDateTime fechaCreacion) {
         this.fechaCreacion = fechaCreacion;
     }
 
@@ -114,11 +110,11 @@ public class Banco implements Serializable {
         this.estado = estado;
     }
 
-    public Timestamp getFechaInactivacion() {
+    public LocalDateTime getFechaInactivacion() {
         return fechaInactivacion;
     }
 
-    public void setFechaInactivacion(Timestamp fechaInactivacion) {
+    public void setFechaInactivacion(LocalDateTime fechaInactivacion) {
         this.fechaInactivacion = fechaInactivacion;
     }
 

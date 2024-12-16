@@ -13,7 +13,6 @@ import java.util.Objects;
 public class SeguridadBanco implements Serializable {
 
     @Id
-    @NotNull
     @Column(name = "COD_SEGURIDAD_BANCO", nullable = false)
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer code;
