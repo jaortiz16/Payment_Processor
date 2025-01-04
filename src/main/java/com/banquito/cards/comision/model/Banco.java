@@ -31,7 +31,7 @@ public class Banco implements Serializable {
     @Column(name = "FECHA_CREACION", nullable = false)
     private LocalDateTime fechaCreacion;
     @ManyToOne
-    @JoinColumn(name = "COD_COMISION", referencedColumnName = "COD_COMISION", insertable = false, updatable = false)
+    @JoinColumn(name = "COD_COMISION", referencedColumnName = "COD_COMISION")
     private Comision comision;
     @NotNull
     @Column(name = "ESTADO", length = 3, nullable = false)

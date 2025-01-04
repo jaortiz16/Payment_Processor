@@ -4,6 +4,7 @@ import com.banquito.cards.fraude.model.MonitoreoFraude;
 import com.banquito.cards.fraude.model.ReglaFraude;
 import com.banquito.cards.fraude.repository.MonitoreoFraudeRepository;
 import com.banquito.cards.transaccion.model.Transaccion;
+import com.banquito.cards.transaccion.repository.TransaccionRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,68 +17,83 @@ public class MonitoreoFraudeService {
 
     private final MonitoreoFraudeRepository monitoreoFraudeRepository;
     private final ReglaFraudeService reglaFraudeService;
+    private final TransaccionRepository transaccionRepository;
 
     public MonitoreoFraudeService(MonitoreoFraudeRepository monitoreoFraudeRepository,
-                                 ReglaFraudeService reglaFraudeService) {
+                                 ReglaFraudeService reglaFraudeService,
+                                 TransaccionRepository transaccionRepository) {
         this.monitoreoFraudeRepository = monitoreoFraudeRepository;
         this.reglaFraudeService = reglaFraudeService;
+        this.transaccionRepository = transaccionRepository;
     }
 
     @Transactional
     public String evaluarRiesgoTransaccion(Transaccion transaccion) {
         List<ReglaFraude> reglas = reglaFraudeService.obtenerTodasLasReglas();
-        String nivelRiesgoMaximo = "BAJO";
+        String nivelRiesgo = "BAJO";
 
         for (ReglaFraude regla : reglas) {
-            String riesgoActual = evaluarRegla(transaccion, regla);
-            if ("ALTO".equals(riesgoActual)) {
-                registrarAlerta(regla, "ALTO");
+            if (Boolean.TRUE.equals(excedeLimiteTransacciones(transaccion, regla))) {
+                registrarAlerta(transaccion, regla, "ALTO");
                 return "ALTO";
-            } else if ("MEDIO".equals(riesgoActual) && !"ALTO".equals(nivelRiesgoMaximo)) {
-                nivelRiesgoMaximo = "MEDIO";
             }
         }
 
-        if (!"BAJO".equals(nivelRiesgoMaximo)) {
-            registrarAlerta(reglas.get(0), nivelRiesgoMaximo);
-        }
-
-        return nivelRiesgoMaximo;
+        return nivelRiesgo;
     }
 
-    private String evaluarRegla(Transaccion transaccion, ReglaFraude regla) {
-        if (transaccion.getMonto().compareTo(regla.getLimiteMontoTotal()) > 0) {
-            return "ALTO";
-        }
-        if (excedeLimiteTransacciones(transaccion, regla)) {
-            return "ALTO";
-        }
-
-        return "BAJO";
-    }
-
-    private boolean excedeLimiteTransacciones(Transaccion transaccion, ReglaFraude regla) {
+    private Boolean excedeLimiteTransacciones(Transaccion transaccion, ReglaFraude regla) {
         LocalDateTime fechaInicio = obtenerFechaInicioPeriodo(regla.getPeriodoTiempo());
-        return false;
+        LocalDateTime fechaFin = LocalDateTime.now();
+
+        // Verificar límites por banco
+        List<Transaccion> transaccionesBanco = transaccionRepository.findByBancoAndFechaCreacionBetween(
+                transaccion.getBanco(),
+                fechaInicio,
+                fechaFin
+        );
+
+        // Verificar límites por tarjeta
+        List<Transaccion> transaccionesTarjeta = transaccionRepository.findByNumeroTarjetaAndFechaCreacionBetween(
+                transaccion.getNumeroTarjeta(),
+                fechaInicio,
+                fechaFin
+        );
+
+        BigDecimal montoTotalBanco = calcularMontoTotal(transaccionesBanco);
+        BigDecimal montoTotalTarjeta = calcularMontoTotal(transaccionesTarjeta);
+
+        // Límites por tarjeta (puedes ajustar estos valores)
+        int maxTransaccionesPorTarjeta = 5; // máximo 5 transacciones por período
+        BigDecimal maxMontoPorTarjeta = new BigDecimal("3000.00"); // máximo 3000 por período
+
+        return transaccionesBanco.size() > regla.getLimiteTransacciones().intValue() ||
+               montoTotalBanco.compareTo(regla.getLimiteMontoTotal()) > 0 ||
+               transaccionesTarjeta.size() > maxTransaccionesPorTarjeta ||
+               montoTotalTarjeta.compareTo(maxMontoPorTarjeta) > 0;
+    }
+
+    private BigDecimal calcularMontoTotal(List<Transaccion> transacciones) {
+        return transacciones.stream()
+                .map(Transaccion::getMonto)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
     private LocalDateTime obtenerFechaInicioPeriodo(String periodoTiempo) {
         LocalDateTime ahora = LocalDateTime.now();
         return switch (periodoTiempo) {
-            case "HOR" -> ahora.minusHours(1);
             case "DIA" -> ahora.minusDays(1);
             case "SEM" -> ahora.minusWeeks(1);
-            default -> ahora.minusDays(1);
+            case "MES" -> ahora.minusMonths(1);
+            default -> throw new IllegalArgumentException("Periodo de tiempo no válido: " + periodoTiempo);
         };
     }
 
-    @Transactional
-    public MonitoreoFraude registrarAlerta(ReglaFraude regla, String riesgo) {
+    private void registrarAlerta(Transaccion transaccion, ReglaFraude regla, String nivelRiesgo) {
         MonitoreoFraude monitoreo = new MonitoreoFraude();
         monitoreo.setReglaFraude(regla);
-        monitoreo.setRiesgo(riesgo);
+        monitoreo.setRiesgo(nivelRiesgo);
         monitoreo.setFechaDeteccion(LocalDateTime.now());
-        
-        return monitoreoFraudeRepository.save(monitoreo);
+        monitoreoFraudeRepository.save(monitoreo);
     }
 }

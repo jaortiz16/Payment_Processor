@@ -16,7 +16,7 @@ public class MonitoreoFraude implements Serializable {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer code;
     @ManyToOne
-    @JoinColumn(name = "COD_REGLA", referencedColumnName = "COD_REGLA", insertable = false, updatable = false)
+    @JoinColumn(name = "COD_REGLA", referencedColumnName = "COD_REGLA")
     private ReglaFraude reglaFraude;
     @NotNull
     @Column(name = "RIESGO", length = 5, nullable = false)
