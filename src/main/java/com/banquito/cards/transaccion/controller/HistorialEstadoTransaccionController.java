@@ -2,7 +2,6 @@ package com.banquito.cards.transaccion.controller;
 
 import com.banquito.cards.transaccion.model.HistorialEstadoTransaccion;
 import com.banquito.cards.transaccion.service.HistorialEstadoTransaccionService;
-import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
