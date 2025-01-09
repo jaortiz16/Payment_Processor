@@ -19,33 +19,51 @@ public class ComisionController {
         this.comisionService = comisionService;
     }
 
-    @GetMapping
-    public ResponseEntity<List<Comision>> listarTodas() {
-        return ResponseEntity.ok(comisionService.obtenerTodas());
-    }
-
-    @GetMapping("/{id}")
-    public ResponseEntity<Comision> obtenerPorId(@PathVariable Integer id) {
-        return comisionService.obtenerPorId(id)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
-    }
-
-    @PostMapping
-    public ResponseEntity<Comision> crear(@RequestBody Comision comision) {
+    @GetMapping("/tipo-comision/{tipo}")
+    public ResponseEntity<List<Comision>> obtenerPorTipo(@PathVariable String tipo) {
         try {
-            return ResponseEntity.ok(comisionService.crear(comision));
+            return ResponseEntity.ok(comisionService.obtenerComisionesPorTipo(tipo));
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(null);
+            return ResponseEntity.badRequest().build();
         }
     }
 
-    @PutMapping("/{id}")
-    public ResponseEntity<Comision> actualizar(@PathVariable Integer id, @RequestBody Comision comision) {
+    @GetMapping("/monto-comision")
+    public ResponseEntity<List<Comision>> buscarPorMontoBase(
+            @RequestParam BigDecimal montoMinimo,
+            @RequestParam BigDecimal montoMaximo) {
         try {
-            return ResponseEntity.ok(comisionService.actualizar(id, comision));
+            return ResponseEntity.ok(
+                comisionService.obtenerComisionesPorMontoBaseEntre(montoMinimo, montoMaximo));
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(null);
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
+    @GetMapping("/obtener-por-id/{id}")
+    public ResponseEntity<Comision> obtenerPorId(@PathVariable Integer id) {
+        try {
+            return ResponseEntity.ok(comisionService.obtenerComisionPorId(id));
+        } catch (RuntimeException e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    @PostMapping("/crear-comision")
+    public ResponseEntity<Comision> crearComision(@RequestBody Comision comision) {
+        try {
+            return ResponseEntity.ok(comisionService.crearComision(comision));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
+    @PutMapping("/actualizar-comision/{id}")
+    public ResponseEntity<Comision> actualizarComision(@PathVariable Integer id, @RequestBody Comision comision) {
+        try {
+            return ResponseEntity.ok(comisionService.actualizarComision(id, comision));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().build();
         }
     }
 
@@ -56,20 +74,20 @@ public class ComisionController {
         try {
             return ResponseEntity.ok(comisionService.agregarSegmento(id, segmento));
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(null);
+            return ResponseEntity.badRequest().build();
         }
     }
 
     @GetMapping("/{id}/calcular")
     public ResponseEntity<BigDecimal> calcularComision(
             @PathVariable Integer id,
-            @RequestParam Integer numTransacciones,
+            @RequestParam Integer numeroTransacciones,
             @RequestParam BigDecimal montoTransaccion) {
         try {
             return ResponseEntity.ok(
-                comisionService.calcularComision(id, numTransacciones, montoTransaccion));
+                comisionService.calcularComision(id, numeroTransacciones, montoTransaccion));
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(null);
+            return ResponseEntity.badRequest().build();
         }
     }
-} 
+}

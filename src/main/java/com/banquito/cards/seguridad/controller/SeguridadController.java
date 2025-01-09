@@ -63,18 +63,5 @@ public class SeguridadController {
         }
     }
 
-    @PostMapping("/logs")
-    public ResponseEntity<LogConexion> registrarConexion(
-            @RequestParam String marca,
-            @RequestParam Integer codBanco,
-            @RequestParam String ipOrigen,
-            @RequestParam String operacion,
-            @RequestParam String resultado) {
-        try {
-            return ResponseEntity.ok(
-                    seguridadService.registrarConexion(marca, codBanco, ipOrigen, operacion, resultado));
-        } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().build();
-        }
-    }
+
 } 
