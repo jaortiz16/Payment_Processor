@@ -27,7 +27,7 @@ public class HistorialEstadoTransaccion implements Serializable {
     @Temporal(TemporalType.TIMESTAMP)
     @Column(name = "FECHA_ESTADO_CAMBIO")
     private LocalDateTime fechaEstadoCambio;
-    @Column(name = "DETALLE", length = 50)
+    @Column(name = "DETALLE", length = 200)
     private String detalle;
 
     public HistorialEstadoTransaccion() {}

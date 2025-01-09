@@ -30,14 +30,12 @@ public class LogConexionService {
     @Transactional
     public LogConexion registrarConexion(String marca, Integer codBanco, String ipOrigen,
                                        String operacion, String resultado) {
-        // Validar que existan la marca y el banco
         SeguridadMarca seguridadMarca = seguridadMarcaRepository.findById(marca)
                 .orElseThrow(() -> new RuntimeException("Marca no encontrada"));
         
         SeguridadBanco seguridadBanco = seguridadBancoRepository.findById(codBanco)
                 .orElseThrow(() -> new RuntimeException("Banco no encontrado"));
 
-        // Validar el estado de las credenciales
         if (!"ACT".equals(seguridadBanco.getEstado())) {
             throw new RuntimeException("Las credenciales del banco están inactivas");
         }
