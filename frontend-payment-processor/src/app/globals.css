@@ -1,0 +1,177 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 222.2 47.4% 11.2%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 221.2 83.2% 53.3%;
+    --radius: 0.5rem;
+
+    /* Chart Colors */
+    --chart-1: 221.2 83.2% 53.3%;
+    --chart-2: 142.1 76.2% 36.3%;
+    --chart-3: 217.2 91.2% 59.8%;
+    --chart-4: 47.9 95.8% 53.1%;
+    --chart-5: 280 65% 60%;
+  }
+
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 210 40% 98%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 224.3 76.3% 48%;
+
+    /* Chart Colors */
+    --chart-1: 217.2 91.2% 59.8%;
+    --chart-2: 142.1 70.6% 45.3%;
+    --chart-3: 221.2 83.2% 53.3%;
+    --chart-4: 47.9 95.8% 53.1%;
+    --chart-5: 280 65% 60%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* Transiciones suaves */
+* {
+  @apply transition-colors duration-200;
+}
+
+/* Mejoras en hover para cards */
+.card {
+  @apply hover:shadow-lg hover:border-primary/20 transition-all duration-200;
+}
+
+/* Mejoras en hover para botones */
+.button {
+  @apply hover:shadow-md active:scale-95 transition-all duration-200;
+}
+
+/* Gradientes para botones primarios */
+.gradient-button {
+  @apply bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-semibold py-2 px-4 rounded-md transition-all duration-200 hover:shadow-lg hover:scale-105;
+}
+
+/* Mejoras en el tema oscuro */
+.dark .card {
+  @apply hover:bg-accent/5;
+}
+
+.dark .button {
+  @apply hover:bg-accent/10;
+}
+
+/* Estilos para el sidebar */
+.sidebar-link {
+  @apply flex items-center gap-x-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors text-muted-foreground hover:bg-accent/50 hover:text-foreground;
+}
+
+.sidebar-link:not(.active) {
+  @apply text-muted-foreground hover:bg-accent/50 hover:text-foreground;
+}
+
+.sidebar-link.active {
+  @apply bg-accent/50 text-foreground;
+}
+
+/* Estilos para el acordeón del sidebar */
+.sidebar-submenu {
+  @apply overflow-hidden transition-all duration-300;
+}
+
+.sidebar-submenu-item {
+  @apply pl-9 py-1.5;
+}
+
+/* Iconos en tema claro/oscuro */
+.icon-muted {
+  @apply text-muted-foreground;
+}
+
+.icon-primary {
+  @apply text-foreground dark:text-white;
+}
+
+/* Contenedor principal */
+.main-container {
+  @apply flex-1 transition-all duration-300;
+}
+
+/* Estilos para gráficos en tema oscuro */
+.dark .recharts-cartesian-grid-horizontal line,
+.dark .recharts-cartesian-grid-vertical line {
+  @apply stroke-muted;
+}
+
+.dark .recharts-text {
+  @apply fill-foreground;
+}
+
+/* Scrollbar personalizada */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-muted;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-muted-foreground/50 rounded-full;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-muted-foreground;
+}
+
+/* Estilos específicos para el tema oscuro */
+.dark {
+  --sidebar-bg: 240 10% 3.9%;
+  --sidebar-fg: 0 0% 98%;
+}
+
+/* Estilos para el botón de Dashboard */
+.dashboard-button {
+  @apply bg-blue-600 text-white hover:bg-blue-700;
+}
