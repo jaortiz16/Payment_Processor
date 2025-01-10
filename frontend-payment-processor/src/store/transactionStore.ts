@@ -32,7 +32,7 @@ interface TransactionState {
   fetchTransactionsByDate: (fecha: string) => Promise<void>;
 }
 
-const API_URL = 'http://localhost:8080/api/v1/historial-estados';
+const API_URL = 'http://3.135.191.61/api/v1/historial-estados';
 
 export const useTransactionStore = create<TransactionState>((set) => ({
   transactions: [],

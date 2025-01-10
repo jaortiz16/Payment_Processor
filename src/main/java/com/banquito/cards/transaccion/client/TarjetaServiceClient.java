@@ -5,7 +5,7 @@ import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 
-@FeignClient(name = "tarjetaService", url = "http://localhost:3000")
+@FeignClient(name = "tarjetaService", url = "https://payment-processor-nu.vercel.app")
 public interface TarjetaServiceClient {
 
     @PostMapping("/transacciones/consumo-tarjeta/validar")

@@ -15,7 +15,7 @@ public class CorsConfig {
         CorsConfiguration config = new CorsConfiguration();
         
         // Permitir orígenes específicos
-        config.addAllowedOrigin("http://localhost:3001"); // Frontend Next.js
+        config.addAllowedOrigin("https://payment-processor-nu.vercel.app"); // Frontend Next.js
         
         // Permitir métodos HTTP
         config.addAllowedMethod("*");
