@@ -1,31 +1,19 @@
 package com.banquito.cards.transaccion.model;
 
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class RespuestaMonitoreoFraude {
     private boolean success;
-    private String message;
     private String estado;
-
-    public boolean isSuccess() {
-        return success;
-    }
-
-    public void setSuccess(boolean success) {
-        this.success = success;
-    }
-
-    public String getMessage() {
-        return message;
-    }
-
-    public void setMessage(String message) {
-        this.message = message;
-    }
-
-    public String getEstado() {
-        return estado;
-    }
-
-    public void setEstado(String estado) {
-        this.estado = estado;
-    }
+    private String message;
+    private String codigoUnicoTransaccion;
+    private String nivelRiesgo;
+    private String detalle;
 } 

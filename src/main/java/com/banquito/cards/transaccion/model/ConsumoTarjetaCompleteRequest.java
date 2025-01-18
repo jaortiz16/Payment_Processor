@@ -1,109 +1,77 @@
 package com.banquito.cards.transaccion.model;
 
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import jakarta.validation.constraints.*;
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
-import com.fasterxml.jackson.annotation.JsonProperty;
 
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class ConsumoTarjetaCompleteRequest {
+    
+    @NotNull
+    @Size(min = 16, max = 128)
     private String numeroTarjeta;
+    
+    @NotNull
+    @Size(min = 3, max = 128)
     private String cvv;
+    
+    @NotNull
+    @Size(min = 4, max = 64)
     private String fechaCaducidad;
+    
+    @NotNull
+    @DecimalMin("0.01")
+    @DecimalMax("999999999999999999.99")
     private BigDecimal valor;
+    
+    @Size(max = 500)
     private String descripcion;
+    
+    @Size(min = 8, max = 20)
     private String numeroCuenta;
+    
     private Boolean esDiferido;
+    
+    @Min(1)
+    @Max(48)
     private Integer cuotas;
+    
     private Boolean interesDiferido;
+    
+    @Size(max = 128)
     private String beneficiario;
+    
+    @NotNull
     private DetalleComisiones detalle;
-
+    
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
     public static class DetalleComisiones {
-        @JsonProperty("gtw")
         private ComisionDetalle gtw;
-        @JsonProperty("processor")
         private ComisionDetalle processor;
-        @JsonProperty("marca")
         private ComisionDetalle marca;
-
-        public ComisionDetalle getGtw() {
-            return gtw;
-        }
-
-        public void setGtw(ComisionDetalle gtw) {
-            this.gtw = gtw;
-        }
-
-        public ComisionDetalle getProcessor() {
-            return processor;
-        }
-
-        public void setProcessor(ComisionDetalle processor) {
-            this.processor = processor;
-        }
-
-        public ComisionDetalle getMarca() {
-            return marca;
-        }
-
-        public void setMarca(ComisionDetalle marca) {
-            this.marca = marca;
-        }
     }
-
+    
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
     public static class ComisionDetalle {
+        @NotNull
+        @DecimalMin("0.00")
+        @DecimalMax("100.00")
         private BigDecimal comision;
+        
+        @NotNull
+        @Size(min = 8, max = 20)
         private String numeroCuenta;
-
-        public BigDecimal getComision() {
-            return comision;
-        }
-
-        public void setComision(BigDecimal comision) {
-            this.comision = comision;
-        }
-
-        public String getNumeroCuenta() {
-            return numeroCuenta;
-        }
-
-        public void setNumeroCuenta(String numeroCuenta) {
-            this.numeroCuenta = numeroCuenta;
-        }
     }
-
-    // Getters y setters de la clase principal
-    public String getNumeroTarjeta() { return numeroTarjeta; }
-    public void setNumeroTarjeta(String numeroTarjeta) { this.numeroTarjeta = numeroTarjeta; }
-    
-    public String getCvv() { return cvv; }
-    public void setCvv(String cvv) { this.cvv = cvv; }
-    
-    public String getFechaCaducidad() { return fechaCaducidad; }
-    public void setFechaCaducidad(String fechaCaducidad) { this.fechaCaducidad = fechaCaducidad; }
-    
-    public BigDecimal getValor() { return valor; }
-    public void setValor(BigDecimal valor) { 
-        this.valor = valor != null ? valor.setScale(2, BigDecimal.ROUND_HALF_UP) : null;
-    }
-    
-    public String getDescripcion() { return descripcion; }
-    public void setDescripcion(String descripcion) { this.descripcion = descripcion; }
-    
-    public String getNumeroCuenta() { return numeroCuenta; }
-    public void setNumeroCuenta(String numeroCuenta) { this.numeroCuenta = numeroCuenta; }
-    
-    public Boolean getEsDiferido() { return esDiferido; }
-    public void setEsDiferido(Boolean esDiferido) { this.esDiferido = esDiferido; }
-    
-    public Integer getCuotas() { return cuotas; }
-    public void setCuotas(Integer cuotas) { this.cuotas = cuotas; }
-    
-    public Boolean getInteresDiferido() { return interesDiferido; }
-    public void setInteresDiferido(Boolean interesDiferido) { this.interesDiferido = interesDiferido; }
-    
-    public String getBeneficiario() { return beneficiario; }
-    public void setBeneficiario(String beneficiario) { this.beneficiario = beneficiario; }
-    
-    public DetalleComisiones getDetalle() { return detalle; }
-    public void setDetalle(DetalleComisiones detalle) { this.detalle = detalle; }
 } 

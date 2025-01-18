@@ -4,6 +4,8 @@ import com.banquito.cards.transaccion.model.Transaccion;
 import com.banquito.cards.transaccion.model.HistorialEstadoTransaccion;
 import com.banquito.cards.transaccion.repository.HistorialEstadoTransaccionRepository;
 import com.banquito.cards.transaccion.service.TransaccionService;
+import com.banquito.cards.transaccion.controller.dto.TransaccionDTO;
+import com.banquito.cards.transaccion.controller.mapper.TransaccionMapper;
 
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
@@ -22,16 +24,19 @@ public class TransaccionController {
 
     private final TransaccionService transaccionService;
     private final HistorialEstadoTransaccionRepository historialRepository;
+    private final TransaccionMapper transaccionMapper;
 
     public TransaccionController(TransaccionService transaccionService,
-                               HistorialEstadoTransaccionRepository historialRepository) {
+                               HistorialEstadoTransaccionRepository historialRepository,
+                               TransaccionMapper transaccionMapper) {
         this.transaccionService = transaccionService;
         this.historialRepository = historialRepository;
+        this.transaccionMapper = transaccionMapper;
     }
         @GetMapping("/{id}")
     public ResponseEntity<?> obtenerTransaccion(@PathVariable Integer id) {
         try {
-            Transaccion transaccion = transaccionService.obtenerTransaccionPorId(id);
+            TransaccionDTO transaccion = transaccionService.obtenerTransaccionPorId(id);
             return ResponseEntity.ok(transaccion);
         } catch (RuntimeException e) {
             Map<String, String> response = new HashMap<>();
@@ -86,20 +91,21 @@ public class TransaccionController {
     }
 
     @PostMapping
-    public ResponseEntity<?> crearTransaccion(@RequestBody Transaccion transaccion) {
+    public ResponseEntity<?> crearTransaccion(@RequestBody TransaccionDTO transaccionDTO) {
         try {
             // 1. Guardamos la transacción como pendiente
-            transaccion.setEstado("PEN");
-            transaccion.setFechaCreacion(LocalDateTime.now());
-            Transaccion transaccionGuardada = transaccionService.guardarTransaccion(transaccion);
+            transaccionDTO.setEstado("PEN");
+            transaccionDTO.setFechaCreacion(LocalDateTime.now());
+            TransaccionDTO transaccionGuardada = transaccionService.guardarTransaccion(transaccionDTO);
 
             // 2. Procesamos con el banco y esperamos su respuesta
             try {
-                transaccionService.procesarConBanco(transaccionGuardada);
+                transaccionService.procesarConBanco(transaccionGuardada.getCodigo());
                 
                 // 3. Obtenemos el estado final de la transacción y su último historial
-                Transaccion transaccionFinal = transaccionService.obtenerTransaccionPorId(transaccionGuardada.getCodigo());
-                List<HistorialEstadoTransaccion> historiales = historialRepository.findByTransaccionOrderByFechaEstadoCambioDesc(transaccionFinal);
+                TransaccionDTO transaccionFinal = transaccionService.obtenerTransaccionPorId(transaccionGuardada.getCodigo());
+                List<HistorialEstadoTransaccion> historiales = historialRepository.findByTransaccionOrderByFechaEstadoCambioDesc(
+                    transaccionMapper.toModel(transaccionFinal));
                 String detalle = !historiales.isEmpty() ? historiales.get(0).getDetalle() : null;
                 
                 Map<String, String> response = new HashMap<>();
@@ -135,7 +141,7 @@ public class TransaccionController {
             @PathVariable String codigoUnicoTransaccion,
             @RequestParam String decision) {
         Map<String, String> response = new HashMap<>();
-        Transaccion result = transaccionService.procesarRespuestaFraude(codigoUnicoTransaccion, decision);
+        TransaccionDTO result = transaccionService.procesarRespuestaFraude(codigoUnicoTransaccion, decision);
         String mensaje;
         
         switch (result.getEstado()) {

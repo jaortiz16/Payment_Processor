@@ -21,4 +21,20 @@ public interface MonitoreoFraudeRepository extends JpaRepository<MonitoreoFraude
         String numeroTarjeta, LocalDateTime fechaInicio, LocalDateTime fechaFin);
     
     Optional<MonitoreoFraude> findByCodigoUnicoTransaccion(String codigoUnicoTransaccion);
+    
+    List<MonitoreoFraude> findByNivelRiesgoAndEstado(String nivelRiesgo, String estado);
+    
+    List<MonitoreoFraude> findByPuntajeRiesgoGreaterThanEqualAndEstado(
+        java.math.BigDecimal puntajeRiesgo, String estado);
+    
+    List<MonitoreoFraude> findByRequiereVerificacionAdicionalAndEstado(
+        Boolean requiereVerificacion, String estado);
+    
+    List<MonitoreoFraude> findByIpOrigenAndFechaDeteccionBetween(
+        String ipOrigen, LocalDateTime fechaInicio, LocalDateTime fechaFin);
+    
+    List<MonitoreoFraude> findByUbicacionGeograficaAndFechaDeteccionBetween(
+        String ubicacionGeografica, LocalDateTime fechaInicio, LocalDateTime fechaFin);
+    
+    Optional<MonitoreoFraude> findFirstByCodigoUnicoTransaccionOrderByFechaDeteccionDesc(String codigoUnicoTransaccion);
 }

@@ -2,10 +2,13 @@ package com.banquito.cards.comision.model;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 import java.io.Serializable;
 import java.time.LocalDateTime;
-import java.util.Objects;
 
+@Data
+@NoArgsConstructor
 @Entity
 @Table(name = "BANCO")
 public class Banco implements Serializable {
@@ -48,108 +51,7 @@ public class Banco implements Serializable {
     @Column(name = "FECHA_INACTIVACION")
     private LocalDateTime fechaInactivacion;
 
-    public Banco() {}
-
     public Banco(Integer codigo) {
         this.codigo = codigo;
-    }
-
-    public Integer getCodigo() {
-        return codigo;
-    }
-
-    public void setCodigo(Integer codigo) {
-        this.codigo = codigo;
-    }
-
-    public String getCodigoInterno() {
-        return codigoInterno;
-    }
-
-    public void setCodigoInterno(String codigoInterno) {
-        this.codigoInterno = codigoInterno;
-    }
-
-    public String getRuc() {
-        return ruc;
-    }
-
-    public void setRuc(String ruc) {
-        this.ruc = ruc;
-    }
-
-    public String getRazonSocial() {
-        return razonSocial;
-    }
-
-    public void setRazonSocial(String razonSocial) {
-        this.razonSocial = razonSocial;
-    }
-
-    public String getNombreComercial() {
-        return nombreComercial;
-    }
-
-    public void setNombreComercial(String nombreComercial) {
-        this.nombreComercial = nombreComercial;
-    }
-
-    public LocalDateTime getFechaCreacion() {
-        return fechaCreacion;
-    }
-
-    public void setFechaCreacion(LocalDateTime fechaCreacion) {
-        this.fechaCreacion = fechaCreacion;
-    }
-
-    public Comision getComision() {
-        return comision;
-    }
-
-    public void setComision(Comision comision) {
-        this.comision = comision;
-    }
-
-    public String getEstado() {
-        return estado;
-    }
-
-    public void setEstado(String estado) {
-        this.estado = estado;
-    }
-
-    public LocalDateTime getFechaInactivacion() {
-        return fechaInactivacion;
-    }
-
-    public void setFechaInactivacion(LocalDateTime fechaInactivacion) {
-        this.fechaInactivacion = fechaInactivacion;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (o == null || getClass() != o.getClass()) return false;
-        Banco banco = (Banco) o;
-        return Objects.equals(codigo, banco.codigo);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hashCode(codigo);
-    }
-
-    @Override
-    public String toString() {
-        return "Banco{" +
-                "codigo=" + codigo +
-                ", codigoInterno='" + codigoInterno + '\'' +
-                ", ruc='" + ruc + '\'' +
-                ", razonSocial='" + razonSocial + '\'' +
-                ", nombreComercial='" + nombreComercial + '\'' +
-                ", fechaCreacion=" + fechaCreacion +
-                ", comision=" + comision +
-                ", estado='" + estado + '\'' +
-                ", fechaInactivacion=" + fechaInactivacion +
-                '}';
     }
 }

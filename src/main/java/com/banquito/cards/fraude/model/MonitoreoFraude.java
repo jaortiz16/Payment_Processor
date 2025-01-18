@@ -1,15 +1,29 @@
 package com.banquito.cards.fraude.model;
 
 import jakarta.persistence.*;
-import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.*;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.math.BigDecimal;
 import com.banquito.cards.transaccion.model.Transaccion;
 
+@Data
+@NoArgsConstructor
 @Entity
 @Table(name = "MONITOREO_FRAUDE")
 public class MonitoreoFraude implements Serializable {
+
+    public static final String ESTADO_PENDIENTE = "PEN";
+    public static final String ESTADO_PROCESADO = "PRO";
+    public static final String ESTADO_RECHAZADO = "REC";
+    public static final String ESTADO_APROBADO = "APR";
+    public static final String ESTADO_EN_REVISION = "REV";
+    
+    public static final String NIVEL_RIESGO_BAJO = "BAJ";
+    public static final String NIVEL_RIESGO_MEDIO = "MED";
+    public static final String NIVEL_RIESGO_ALTO = "ALT";
 
     @Id
     @Column(name = "COD_MONITOREO_FRAUDE", nullable = false)
@@ -17,148 +31,67 @@ public class MonitoreoFraude implements Serializable {
     private Integer codigo;
 
     @NotNull
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "COD_REGLA", referencedColumnName = "COD_REGLA")
     private ReglaFraude reglaFraude;
 
     @NotNull
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "COD_TRANSACCION", referencedColumnName = "COD_TRANSACCION")
     private Transaccion transaccion;
 
     @NotNull
+    @Pattern(regexp = "BAJ|MED|ALT")
     @Column(name = "NIVEL_RIESGO", length = 3, nullable = false)
-    private String nivelRiesgo; // BAJ, MED, ALT
+    private String nivelRiesgo;
 
     @NotNull
+    @DecimalMin("0.00")
+    @DecimalMax("100.00")
     @Column(name = "PUNTAJE_RIESGO", precision = 5, scale = 2, nullable = false)
-    private BigDecimal puntajeRiesgo; // 0.00 - 100.00
+    private BigDecimal puntajeRiesgo;
 
     @NotNull
+    @Pattern(regexp = "PEN|PRO|REC|APR|REV")
     @Column(name = "ESTADO", length = 3, nullable = false)
-    private String estado; // PEN (pendiente), PRO (procesado)
+    private String estado;
 
-    @Column(name = "DETALLE", length = 200)
+    @Size(max = 500)
+    @Column(name = "DETALLE", length = 500)
     private String detalle;
 
+    @Size(max = 200)
+    @Column(name = "ACCION_TOMADA", length = 200)
+    private String accionTomada;
+
+    @Column(name = "REQUIERE_VERIFICACION_ADICIONAL")
+    private Boolean requiereVerificacionAdicional;
+
+    @Size(max = 200)
+    @Column(name = "MOTIVO_VERIFICACION", length = 200)
+    private String motivoVerificacion;
+
     @NotNull
+    @PastOrPresent
     @Temporal(TemporalType.TIMESTAMP)
     @Column(name = "FECHA_DETECCION", nullable = false)
     private LocalDateTime fechaDeteccion;
 
+    @PastOrPresent
     @Temporal(TemporalType.TIMESTAMP)
     @Column(name = "FECHA_PROCESAMIENTO")
     private LocalDateTime fechaProcesamiento;
 
+    @Size(min = 32, max = 64)
     @Column(name = "CODIGO_UNICO_TRANSACCION", length = 64)
     private String codigoUnicoTransaccion;
 
-    public MonitoreoFraude() {}
+    @Column(name = "USUARIO_PROCESAMIENTO", length = 50)
+    private String usuarioProcesamiento;
 
-    public Integer getCodigo() {
-        return codigo;
-    }
+    @Column(name = "IP_ORIGEN", length = 50)
+    private String ipOrigen;
 
-    public void setCodigo(Integer codigo) {
-        this.codigo = codigo;
-    }
-
-    public ReglaFraude getReglaFraude() {
-        return reglaFraude;
-    }
-
-    public void setReglaFraude(ReglaFraude reglaFraude) {
-        this.reglaFraude = reglaFraude;
-    }
-
-    public Transaccion getTransaccion() {
-        return transaccion;
-    }
-
-    public void setTransaccion(Transaccion transaccion) {
-        this.transaccion = transaccion;
-    }
-
-    public String getNivelRiesgo() {
-        return nivelRiesgo;
-    }
-
-    public void setNivelRiesgo(String nivelRiesgo) {
-        this.nivelRiesgo = nivelRiesgo;
-    }
-
-    public BigDecimal getPuntajeRiesgo() {
-        return puntajeRiesgo;
-    }
-
-    public void setPuntajeRiesgo(BigDecimal puntajeRiesgo) {
-        this.puntajeRiesgo = puntajeRiesgo;
-    }
-
-    public String getEstado() {
-        return estado;
-    }
-
-    public void setEstado(String estado) {
-        this.estado = estado;
-    }
-
-    public String getDetalle() {
-        return detalle;
-    }
-
-    public void setDetalle(String detalle) {
-        this.detalle = detalle;
-    }
-
-    public LocalDateTime getFechaDeteccion() {
-        return fechaDeteccion;
-    }
-
-    public void setFechaDeteccion(LocalDateTime fechaDeteccion) {
-        this.fechaDeteccion = fechaDeteccion;
-    }
-
-    public LocalDateTime getFechaProcesamiento() {
-        return fechaProcesamiento;
-    }
-
-    public void setFechaProcesamiento(LocalDateTime fechaProcesamiento) {
-        this.fechaProcesamiento = fechaProcesamiento;
-    }
-
-    public String getCodigoUnicoTransaccion() {
-        return codigoUnicoTransaccion;
-    }
-
-    public void setCodigoUnicoTransaccion(String codigoUnicoTransaccion) {
-        this.codigoUnicoTransaccion = codigoUnicoTransaccion;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (o == null || getClass() != o.getClass()) return false;
-        MonitoreoFraude that = (MonitoreoFraude) o;
-        return codigo.equals(that.codigo);
-    }
-
-    @Override
-    public int hashCode() {
-        return codigo.hashCode();
-    }
-
-    @Override
-    public String toString() {
-        return "MonitoreoFraude{" +
-                "codigo=" + codigo +
-                ", reglaFraude=" + reglaFraude +
-                ", transaccion=" + transaccion +
-                ", nivelRiesgo='" + nivelRiesgo + '\'' +
-                ", puntajeRiesgo=" + puntajeRiesgo +
-                ", estado='" + estado + '\'' +
-                ", detalle='" + detalle + '\'' +
-                ", fechaDeteccion=" + fechaDeteccion +
-                ", fechaProcesamiento=" + fechaProcesamiento +
-                '}';
-    }
+    @Column(name = "UBICACION_GEOGRAFICA", length = 200)
+    private String ubicacionGeografica;
 }
