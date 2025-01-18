@@ -1,22 +1,25 @@
 package com.banquito.cards.transaccion.model;
 
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class ProcesamientoFraudeRequest {
+    
+    @NotNull
+    @Size(min = 32, max = 64)
     private String codigoUnicoTransaccion;
+    
+    @NotNull
+    @Size(min = 3, max = 10)
     private String decision;
-
-    public String getCodigoUnicoTransaccion() {
-        return codigoUnicoTransaccion;
-    }
-
-    public void setCodigoUnicoTransaccion(String codigoUnicoTransaccion) {
-        this.codigoUnicoTransaccion = codigoUnicoTransaccion;
-    }
-
-    public String getDecision() {
-        return decision;
-    }
-
-    public void setDecision(String decision) {
-        this.decision = decision;
-    }
+    
+    private String observacion;
 } 

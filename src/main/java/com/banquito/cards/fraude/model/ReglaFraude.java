@@ -1,14 +1,35 @@
 package com.banquito.cards.fraude.model;
 
 import jakarta.persistence.*;
-import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.*;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 import java.io.Serializable;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
+@Data
+@NoArgsConstructor
 @Entity
 @Table(name = "REGLA_FRAUDE")
 public class ReglaFraude implements Serializable {
+
+    public static final String TIPO_TRANSACCIONES = "TRX";
+    public static final String TIPO_MONTO = "MNT";
+    public static final String TIPO_UBICACION = "GEO";
+    public static final String TIPO_COMERCIO = "COM";
+    public static final String TIPO_HORARIO = "HOR";
+    
+    public static final String NIVEL_RIESGO_BAJO = "BAJ";
+    public static final String NIVEL_RIESGO_MEDIO = "MED";
+    public static final String NIVEL_RIESGO_ALTO = "ALT";
+    
+    public static final String ESTADO_ACTIVO = "ACT";
+    public static final String ESTADO_INACTIVO = "INA";
+    
+    public static final String PERIODO_MINUTOS = "MIN";
+    public static final String PERIODO_HORAS = "HOR";
+    public static final String PERIODO_DIAS = "DIA";
 
     @Id
     @Column(name = "COD_REGLA", nullable = false)
@@ -16,162 +37,83 @@ public class ReglaFraude implements Serializable {
     private Integer codRegla;
 
     @NotNull
+    @Size(min = 5, max = 50)
     @Column(name = "NOMBRE_REGLA", length = 50, nullable = false)
     private String nombreRegla;
 
     @NotNull
-    @Column(name = "TIPO_REGLA", length = 3, nullable = false)
-    private String tipoRegla; // TRX (transacciones), MNT (monto), GEO (ubicación)
+    @Size(min = 10, max = 500)
+    @Column(name = "DESCRIPCION", length = 500)
+    private String descripcion;
 
+    @NotNull
+    @Pattern(regexp = "TRX|MNT|GEO|COM|HOR")
+    @Column(name = "TIPO_REGLA", length = 3, nullable = false)
+    private String tipoRegla;
+
+    @Min(1)
+    @Max(999999999)
     @Column(name = "LIMITE_TRANSACCIONES", precision = 9, scale = 0)
     private BigDecimal limiteTransacciones;
 
     @NotNull
+    @Pattern(regexp = "MIN|HOR|DIA")
     @Column(name = "PERIODO_TIEMPO", length = 3)
     private String periodoTiempo;
 
+    @DecimalMin("0.01")
+    @DecimalMax("999999999999999999.99")
     @Column(name = "LIMITE_MONTO_TOTAL", precision = 18, scale = 2)
     private BigDecimal limiteMontoTotal;
 
+    @Column(name = "PAISES_PERMITIDOS", length = 1000)
+    private String paisesPermitidos;
+
+    @Column(name = "COMERCIOS_EXCLUIDOS", length = 1000)
+    private String comerciosExcluidos;
+
+    @Column(name = "HORA_INICIO")
+    private LocalDateTime horaInicio;
+
+    @Column(name = "HORA_FIN")
+    private LocalDateTime horaFin;
+
+    @DecimalMin("0.00")
+    @DecimalMax("100.00")
+    @Column(name = "PUNTAJE_RIESGO", precision = 5, scale = 2)
+    private BigDecimal puntajeRiesgo;
+
     @NotNull
+    @Pattern(regexp = "BAJ|MED|ALT")
     @Column(name = "NIVEL_RIESGO", length = 3)
     private String nivelRiesgo;
 
     @NotNull
+    @Pattern(regexp = "ACT|INA")
     @Column(name = "ESTADO", length = 3, nullable = false)
-    private String estado; 
+    private String estado;
 
     @NotNull
+    @Min(1)
+    @Max(999)
     @Column(name = "PRIORIDAD", nullable = false)
     private Integer prioridad;
 
     @NotNull
+    @PastOrPresent
     @Temporal(TemporalType.TIMESTAMP)
     @Column(name = "FECHA_CREACION", nullable = false)
     private LocalDateTime fechaCreacion;
 
-    @NotNull
+    @PastOrPresent
     @Temporal(TemporalType.TIMESTAMP)
     @Column(name = "FECHA_ACTUALIZACION")
     private LocalDateTime fechaActualizacion;
 
-    public ReglaFraude() {}
+    @Column(name = "USUARIO_CREACION", length = 50)
+    private String usuarioCreacion;
 
-    public Integer getCodRegla() {
-        return codRegla;
-    }
-
-    public void setCodRegla(Integer codRegla) {
-        this.codRegla = codRegla;
-    }
-
-    public String getNombreRegla() {
-        return nombreRegla;
-    }
-
-    public void setNombreRegla(String nombreRegla) {
-        this.nombreRegla = nombreRegla;
-    }
-
-    public String getTipoRegla() {
-        return tipoRegla;
-    }
-
-    public void setTipoRegla(String tipoRegla) {
-        this.tipoRegla = tipoRegla;
-    }
-
-    public BigDecimal getLimiteTransacciones() {
-        return limiteTransacciones;
-    }
-
-    public void setLimiteTransacciones(BigDecimal limiteTransacciones) {
-        this.limiteTransacciones = limiteTransacciones;
-    }
-
-    public String getPeriodoTiempo() {
-        return periodoTiempo;
-    }
-
-    public void setPeriodoTiempo(String periodoTiempo) {
-        this.periodoTiempo = periodoTiempo;
-    }
-
-    public BigDecimal getLimiteMontoTotal() {
-        return limiteMontoTotal;
-    }
-
-    public void setLimiteMontoTotal(BigDecimal limiteMontoTotal) {
-        this.limiteMontoTotal = limiteMontoTotal;
-    }
-
-    public String getNivelRiesgo() {
-        return nivelRiesgo;
-    }
-
-    public void setNivelRiesgo(String nivelRiesgo) {
-        this.nivelRiesgo = nivelRiesgo;
-    }
-
-    public String getEstado() {
-        return estado;
-    }
-
-    public void setEstado(String estado) {
-        this.estado = estado;
-    }
-
-    public Integer getPrioridad() {
-        return prioridad;
-    }
-
-    public void setPrioridad(Integer prioridad) {
-        this.prioridad = prioridad;
-    }
-
-    public LocalDateTime getFechaCreacion() {
-        return fechaCreacion;
-    }
-
-    public void setFechaCreacion(LocalDateTime fechaCreacion) {
-        this.fechaCreacion = fechaCreacion;
-    }
-
-    public LocalDateTime getFechaActualizacion() {
-        return fechaActualizacion;
-    }
-
-    public void setFechaActualizacion(LocalDateTime fechaActualizacion) {
-        this.fechaActualizacion = fechaActualizacion;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (o == null || getClass() != o.getClass()) return false;
-        ReglaFraude that = (ReglaFraude) o;
-        return codRegla.equals(that.codRegla);
-    }
-
-    @Override
-    public int hashCode() {
-        return codRegla.hashCode();
-    }
-
-    @Override
-    public String toString() {
-        return "ReglaFraude{" +
-                "codRegla=" + codRegla +
-                ", nombreRegla='" + nombreRegla + '\'' +
-                ", tipoRegla='" + tipoRegla + '\'' +
-                ", limiteTransacciones=" + limiteTransacciones +
-                ", periodoTiempo='" + periodoTiempo + '\'' +
-                ", limiteMontoTotal=" + limiteMontoTotal +
-                ", nivelRiesgo='" + nivelRiesgo + '\'' +
-                ", estado='" + estado + '\'' +
-                ", prioridad=" + prioridad +
-                ", fechaCreacion=" + fechaCreacion +
-                ", fechaActualizacion=" + fechaActualizacion +
-                '}';
-    }
+    @Column(name = "USUARIO_ACTUALIZACION", length = 50)
+    private String usuarioActualizacion;
 }
 

@@ -4,16 +4,20 @@ import com.banquito.cards.comision.model.Comision;
 import com.banquito.cards.comision.model.ComisionSegmento;
 import com.banquito.cards.comision.repository.ComisionRepository;
 import com.banquito.cards.comision.repository.ComisionSegmentoRepository;
+import com.banquito.cards.exception.NotFoundException;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
 @Transactional
 public class ComisionService {
 
+    private static final String ENTITY_NAME = "Comision";
     private final ComisionRepository comisionRepository;
     private final ComisionSegmentoRepository comisionSegmentoRepository;
 
@@ -45,56 +49,54 @@ public class ComisionService {
     @Transactional(readOnly = true)
     public Comision obtenerComisionPorId(Integer id) {
         return this.comisionRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("No existe la comisión con id: " + id));
+                .orElseThrow(() -> new NotFoundException(id.toString(), ENTITY_NAME));
     }
 
     public Comision crearComision(Comision comision) {
-        try {
-            validarComision(comision);
-            return this.comisionRepository.save(comision);
-        } catch (Exception e) {
-            throw new RuntimeException("Error al crear la comisión: " + e.getMessage());
+        validarComision(comision);
+        if (comisionRepository.existsByTipoAndMontoBase(comision.getTipo(), comision.getMontoBase())) {
+            throw new RuntimeException("Ya existe una comisión con el mismo tipo y monto base");
         }
+        comision.setFechaCreacion(LocalDateTime.now());
+        return this.comisionRepository.save(comision);
     }
 
     public Comision actualizarComision(Integer id, Comision comision) {
-        try {
-            Comision comisionExistente = obtenerComisionPorId(id);
-            validarComision(comision);
-            
-            comisionExistente.setTipo(comision.getTipo());
-            comisionExistente.setMontoBase(comision.getMontoBase());
-            comisionExistente.setTransaccionesBase(comision.getTransaccionesBase());
-            comisionExistente.setManejaSegmentos(comision.getManejaSegmentos());
-            
-            return this.comisionRepository.save(comisionExistente);
-        } catch (Exception e) {
-            throw new RuntimeException("Error al actualizar la comisión: " + e.getMessage());
+        Comision comisionExistente = obtenerComisionPorId(id);
+        validarComision(comision);
+        
+        if (!comisionExistente.getTipo().equals(comision.getTipo()) && 
+            comisionRepository.existsByTipoAndMontoBase(comision.getTipo(), comision.getMontoBase())) {
+            throw new RuntimeException("Ya existe una comisión con el mismo tipo y monto base");
         }
+        
+        comisionExistente.setTipo(comision.getTipo());
+        comisionExistente.setMontoBase(comision.getMontoBase());
+        comisionExistente.setTransaccionesBase(comision.getTransaccionesBase());
+        comisionExistente.setManejaSegmentos(comision.getManejaSegmentos());
+        
+        return this.comisionRepository.save(comisionExistente);
     }
 
     public ComisionSegmento agregarSegmento(Integer comisionId, ComisionSegmento segmento) {
-        try {
-            Comision comision = obtenerComisionPorId(comisionId);
-            validarSegmento(comision, segmento);
-            segmento.setComision(comision);
-            return this.comisionSegmentoRepository.save(segmento);
-        } catch (Exception e) {
-            throw new RuntimeException("Error al agregar el segmento: " + e.getMessage());
+        Comision comision = obtenerComisionPorId(comisionId);
+        validarSegmento(comision, segmento);
+        
+        if (comisionSegmentoRepository.existsByComisionAndTransaccionesHasta(comision, segmento.getTransaccionesHasta())) {
+            throw new RuntimeException("Ya existe un segmento con el mismo límite de transacciones");
         }
+        
+        segmento.setComision(comision);
+        return this.comisionSegmentoRepository.save(segmento);
     }
 
     public BigDecimal calcularComision(Integer comisionId, Integer numeroTransacciones, BigDecimal montoTransaccion) {
-        try {
-            Comision comision = obtenerComisionPorId(comisionId);
-            
-            if (comision.getManejaSegmentos()) {
-                return calcularComisionPorSegmento(comision, numeroTransacciones, montoTransaccion);
-            } else {
-                return calcularComisionBase(comision, montoTransaccion);
-            }
-        } catch (Exception e) {
-            throw new RuntimeException("Error al calcular la comisión: " + e.getMessage());
+        Comision comision = obtenerComisionPorId(comisionId);
+        
+        if (comision.getManejaSegmentos()) {
+            return calcularComisionPorSegmento(comision, numeroTransacciones, montoTransaccion);
+        } else {
+            return calcularComisionBase(comision, montoTransaccion);
         }
     }
 
@@ -133,7 +135,7 @@ public class ComisionService {
 
     private BigDecimal calcularComisionPorSegmento(Comision comision, Integer numeroTransacciones, 
                                                   BigDecimal montoTransaccion) {
-        List<ComisionSegmento> segmentos = comisionSegmentoRepository.findByComision(comision);
+        List<ComisionSegmento> segmentos = comisionSegmentoRepository.findByComisionOrderByPkCodSegmentoAsc(comision);
         
         for (ComisionSegmento segmento : segmentos) {
             if (new BigDecimal(numeroTransacciones).compareTo(segmento.getTransaccionesHasta()) <= 0) {

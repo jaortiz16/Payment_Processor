@@ -2,6 +2,7 @@ package com.banquito.cards.fraude.service;
 
 import com.banquito.cards.fraude.model.ReglaFraude;
 import com.banquito.cards.fraude.repository.ReglaFraudeRepository;
+import com.banquito.cards.exception.NotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -11,112 +12,182 @@ import java.util.List;
 import java.util.Optional;
 
 @Service
+@Transactional
 public class ReglaFraudeService {
 
+    private static final String ENTITY_NAME = "ReglaFraude";
     private final ReglaFraudeRepository reglaFraudeRepository;
 
     public ReglaFraudeService(ReglaFraudeRepository reglaFraudeRepository) {
         this.reglaFraudeRepository = reglaFraudeRepository;
     }
 
+    @Transactional(readOnly = true)
+    public List<ReglaFraude> obtenerReglasActivas() {
+        return reglaFraudeRepository.findByEstadoOrderByPrioridadAsc(ReglaFraude.ESTADO_ACTIVO);
+    }
+
+    @Transactional(readOnly = true)
     public List<ReglaFraude> obtenerTodasLasReglas() {
         return reglaFraudeRepository.findAll();
     }
 
-    public List<ReglaFraude> obtenerReglasActivas() {
-        return reglaFraudeRepository.findByEstado("ACT");
-    }
-
+    @Transactional(readOnly = true)
     public Optional<ReglaFraude> obtenerReglaPorId(Integer id) {
         return reglaFraudeRepository.findById(id);
+    }
+
+    @Transactional(readOnly = true)
+    public List<ReglaFraude> obtenerReglasPorTipo(String tipoRegla) {
+        validarTipoRegla(tipoRegla);
+        return reglaFraudeRepository.findByTipoReglaAndEstado(tipoRegla, ReglaFraude.ESTADO_ACTIVO);
+    }
+
+    @Transactional(readOnly = true)
+    public List<ReglaFraude> obtenerReglasPorNivelRiesgo(String nivelRiesgo) {
+        validarNivelRiesgo(nivelRiesgo);
+        return reglaFraudeRepository.findByNivelRiesgoAndEstado(nivelRiesgo, ReglaFraude.ESTADO_ACTIVO);
+    }
+
+    @Transactional(readOnly = true)
+    public List<ReglaFraude> obtenerReglasPorPuntajeRiesgoMinimo(BigDecimal puntajeRiesgo) {
+        validarPuntajeRiesgo(puntajeRiesgo);
+        return reglaFraudeRepository.findByPuntajeRiesgoGreaterThanEqualAndEstado(
+            puntajeRiesgo, ReglaFraude.ESTADO_ACTIVO);
     }
 
     @Transactional
     public ReglaFraude crearRegla(ReglaFraude regla) {
         validarRegla(regla);
         regla.setFechaCreacion(LocalDateTime.now());
-        regla.setFechaActualizacion(LocalDateTime.now());
-        regla.setEstado("ACT");
+        regla.setEstado(ReglaFraude.ESTADO_ACTIVO);
         return reglaFraudeRepository.save(regla);
     }
 
-    @Transactional
     public ReglaFraude actualizarRegla(Integer id, ReglaFraude regla) {
-        ReglaFraude reglaExistente = reglaFraudeRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Regla de fraude no encontrada"));
-
+        ReglaFraude reglaExistente = obtenerReglaPorId(id)
+                .orElseThrow(() -> new NotFoundException(id.toString(), ENTITY_NAME));
+        
         validarRegla(regla);
+        if (!reglaExistente.getNombreRegla().equals(regla.getNombreRegla()) &&
+            reglaFraudeRepository.existsByNombreReglaAndEstado(regla.getNombreRegla(), ReglaFraude.ESTADO_ACTIVO)) {
+            throw new IllegalArgumentException("Ya existe una regla activa con el nombre: " + regla.getNombreRegla());
+        }
         
         reglaExistente.setNombreRegla(regla.getNombreRegla());
+        reglaExistente.setDescripcion(regla.getDescripcion());
         reglaExistente.setTipoRegla(regla.getTipoRegla());
         reglaExistente.setLimiteTransacciones(regla.getLimiteTransacciones());
         reglaExistente.setPeriodoTiempo(regla.getPeriodoTiempo());
         reglaExistente.setLimiteMontoTotal(regla.getLimiteMontoTotal());
+        reglaExistente.setPaisesPermitidos(regla.getPaisesPermitidos());
+        reglaExistente.setComerciosExcluidos(regla.getComerciosExcluidos());
+        reglaExistente.setHoraInicio(regla.getHoraInicio());
+        reglaExistente.setHoraFin(regla.getHoraFin());
+        reglaExistente.setPuntajeRiesgo(regla.getPuntajeRiesgo());
         reglaExistente.setNivelRiesgo(regla.getNivelRiesgo());
         reglaExistente.setPrioridad(regla.getPrioridad());
         reglaExistente.setFechaActualizacion(LocalDateTime.now());
-
+        reglaExistente.setUsuarioActualizacion("SYSTEM"); // TODO: Obtener usuario actual
+        
         return reglaFraudeRepository.save(reglaExistente);
     }
 
-    @Transactional
     public void desactivarRegla(Integer id) {
-        ReglaFraude regla = reglaFraudeRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Regla de fraude no encontrada"));
-
-        if ("INA".equals(regla.getEstado())) {
-            throw new RuntimeException("La regla ya está inactiva");
+        ReglaFraude regla = obtenerReglaPorId(id)
+                .orElseThrow(() -> new NotFoundException(id.toString(), ENTITY_NAME));
+        
+        if (ReglaFraude.ESTADO_INACTIVO.equals(regla.getEstado())) {
+            throw new IllegalArgumentException("La regla ya se encuentra inactiva");
         }
-
-        regla.setEstado("INA");
+        
+        regla.setEstado(ReglaFraude.ESTADO_INACTIVO);
         regla.setFechaActualizacion(LocalDateTime.now());
+        regla.setUsuarioActualizacion("SYSTEM"); // TODO: Obtener usuario actual
+        
         reglaFraudeRepository.save(regla);
     }
 
     private void validarRegla(ReglaFraude regla) {
         if (regla.getNombreRegla() == null || regla.getNombreRegla().trim().isEmpty()) {
-            throw new RuntimeException("El nombre de la regla es requerido");
+            throw new IllegalArgumentException("El nombre de la regla es requerido");
         }
-        if (regla.getTipoRegla() == null || regla.getTipoRegla().trim().isEmpty()) {
-            throw new RuntimeException("El tipo de regla es requerido");
+        if (regla.getDescripcion() == null || regla.getDescripcion().trim().isEmpty()) {
+            throw new IllegalArgumentException("La descripción de la regla es requerida");
         }
-        if (regla.getNivelRiesgo() == null || regla.getNivelRiesgo().trim().isEmpty()) {
-            throw new RuntimeException("El nivel de riesgo es requerido");
-        }
-        if (regla.getPeriodoTiempo() == null || regla.getPeriodoTiempo().trim().isEmpty()) {
-            throw new RuntimeException("El periodo de tiempo es requerido");
-        }
-
+        validarTipoRegla(regla.getTipoRegla());
+        validarPeriodoTiempo(regla.getPeriodoTiempo());
+        validarNivelRiesgo(regla.getNivelRiesgo());
+        validarPuntajeRiesgo(regla.getPuntajeRiesgo());
+        
         switch (regla.getTipoRegla()) {
-            case "MNT":
-                if (regla.getLimiteMontoTotal() == null) {
-                    throw new RuntimeException("El límite de monto total es requerido para reglas de tipo monto");
-                }
-                if (regla.getLimiteMontoTotal().compareTo(BigDecimal.ZERO) <= 0) {
-                    throw new RuntimeException("El límite de monto total debe ser mayor a cero");
+            case ReglaFraude.TIPO_TRANSACCIONES:
+                if (regla.getLimiteTransacciones() == null || regla.getLimiteTransacciones().compareTo(BigDecimal.ZERO) <= 0) {
+                    throw new IllegalArgumentException("El límite de transacciones debe ser mayor a 0");
                 }
                 break;
-            case "TRX":
-                if (regla.getLimiteTransacciones() == null) {
-                    throw new RuntimeException("El límite de transacciones es requerido para reglas de tipo transacción");
-                }
-                if (regla.getLimiteTransacciones().compareTo(BigDecimal.ZERO) <= 0) {
-                    throw new RuntimeException("El límite de transacciones debe ser mayor a cero");
+            case ReglaFraude.TIPO_MONTO:
+                if (regla.getLimiteMontoTotal() == null || regla.getLimiteMontoTotal().compareTo(BigDecimal.ZERO) <= 0) {
+                    throw new IllegalArgumentException("El límite de monto total debe ser mayor a 0");
                 }
                 break;
-            case "UBI":
-                // Para reglas de ubicación no se requieren límites específicos
+            case ReglaFraude.TIPO_UBICACION:
+                if (regla.getPaisesPermitidos() == null || regla.getPaisesPermitidos().trim().isEmpty()) {
+                    throw new IllegalArgumentException("Debe especificar al menos un país permitido");
+                }
                 break;
-            default:
-                throw new RuntimeException("Tipo de regla no válido. Use: MNT, TRX o UBI");
+            case ReglaFraude.TIPO_COMERCIO:
+                if (regla.getComerciosExcluidos() == null || regla.getComerciosExcluidos().trim().isEmpty()) {
+                    throw new IllegalArgumentException("Debe especificar al menos un comercio excluido");
+                }
+                break;
+            case ReglaFraude.TIPO_HORARIO:
+                if (regla.getHoraInicio() == null || regla.getHoraFin() == null) {
+                    throw new IllegalArgumentException("Debe especificar hora de inicio y fin");
+                }
+                if (regla.getHoraInicio().isAfter(regla.getHoraFin())) {
+                    throw new IllegalArgumentException("La hora de inicio debe ser anterior a la hora fin");
+                }
+                break;
         }
+    }
 
-        if (!List.of("BAJ", "MED", "ALT").contains(regla.getNivelRiesgo())) {
-            throw new RuntimeException("Nivel de riesgo no válido. Use: BAJ, MED o ALT");
+    private void validarTipoRegla(String tipoRegla) {
+        if (!List.of(
+                ReglaFraude.TIPO_TRANSACCIONES,
+                ReglaFraude.TIPO_MONTO,
+                ReglaFraude.TIPO_UBICACION,
+                ReglaFraude.TIPO_COMERCIO,
+                ReglaFraude.TIPO_HORARIO
+            ).contains(tipoRegla)) {
+            throw new IllegalArgumentException("Tipo de regla inválido");
         }
+    }
 
-        if (!List.of("HOR", "DIA", "SEM").contains(regla.getPeriodoTiempo())) {
-            throw new RuntimeException("Periodo de tiempo no válido. Use: HOR, DIA o SEM");
+    private void validarPeriodoTiempo(String periodoTiempo) {
+        if (!List.of(
+                ReglaFraude.PERIODO_MINUTOS,
+                ReglaFraude.PERIODO_HORAS,
+                ReglaFraude.PERIODO_DIAS
+            ).contains(periodoTiempo)) {
+            throw new IllegalArgumentException("Periodo de tiempo inválido");
+        }
+    }
+
+    private void validarNivelRiesgo(String nivelRiesgo) {
+        if (!List.of(
+                ReglaFraude.NIVEL_RIESGO_BAJO,
+                ReglaFraude.NIVEL_RIESGO_MEDIO,
+                ReglaFraude.NIVEL_RIESGO_ALTO
+            ).contains(nivelRiesgo)) {
+            throw new IllegalArgumentException("Nivel de riesgo inválido");
+        }
+    }
+
+    private void validarPuntajeRiesgo(BigDecimal puntajeRiesgo) {
+        if (puntajeRiesgo != null && 
+            (puntajeRiesgo.compareTo(BigDecimal.ZERO) < 0 || puntajeRiesgo.compareTo(new BigDecimal("100")) > 0)) {
+            throw new IllegalArgumentException("El puntaje de riesgo debe estar entre 0 y 100");
         }
     }
 }

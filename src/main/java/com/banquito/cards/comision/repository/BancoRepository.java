@@ -17,5 +17,12 @@ public interface BancoRepository extends JpaRepository<Banco, Integer> {
     Optional<Banco> findByRuc(String ruc);
     
     List<Banco> findByNombreComercialContainingAndEstado(String nombreComercial, String estado);
-
+    
+    boolean existsByRuc(String ruc);
+    
+    boolean existsByCodigoInterno(String codigoInterno);
+    
+    Optional<Banco> findByRucAndEstado(String ruc, String estado);
+    
+    Optional<Banco> findByCodigoInternoAndEstado(String codigoInterno, String estado);
 }

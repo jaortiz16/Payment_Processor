@@ -4,75 +4,89 @@ import com.banquito.cards.transaccion.model.HistorialEstadoTransaccion;
 import com.banquito.cards.transaccion.model.Transaccion;
 import com.banquito.cards.transaccion.repository.HistorialEstadoTransaccionRepository;
 import com.banquito.cards.transaccion.repository.TransaccionRepository;
+import com.banquito.cards.transaccion.controller.dto.HistorialEstadoTransaccionDTO;
+import com.banquito.cards.transaccion.controller.mapper.HistorialEstadoTransaccionMapper;
+import com.banquito.cards.exception.BusinessException;
+import com.banquito.cards.exception.NotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
 public class HistorialEstadoTransaccionService {
 
+    private static final String ENTITY_NAME = "HistorialEstadoTransaccion";
+    
     private final HistorialEstadoTransaccionRepository historialRepository;
     private final TransaccionRepository transaccionRepository;
+    private final HistorialEstadoTransaccionMapper historialMapper;
 
     public HistorialEstadoTransaccionService(
             HistorialEstadoTransaccionRepository historialRepository,
-            TransaccionRepository transaccionRepository) {
+            TransaccionRepository transaccionRepository,
+            HistorialEstadoTransaccionMapper historialMapper) {
         this.historialRepository = historialRepository;
         this.transaccionRepository = transaccionRepository;
+        this.historialMapper = historialMapper;
     }
 
     @Transactional(readOnly = true)
-    public List<HistorialEstadoTransaccion> obtenerHistorialPorFechaYEstado(
+    public List<HistorialEstadoTransaccionDTO> obtenerHistorialPorFechaYEstado(
             String estado, LocalDateTime fechaInicio, LocalDateTime fechaFin, String bancoNombre) {
         if (fechaInicio == null || fechaFin == null) {
-            throw new RuntimeException("Las fechas de inicio y fin son requeridas");
+            throw new BusinessException("Las fechas de inicio y fin son requeridas");
         }
         if (fechaInicio.isAfter(fechaFin)) {
-            throw new RuntimeException("La fecha de inicio no puede ser posterior a la fecha fin");
+            throw new BusinessException("La fecha de inicio no puede ser posterior a la fecha fin");
         }
 
         List<HistorialEstadoTransaccion> historial;
         if (estado != null && !estado.isEmpty()) {
-            historial = historialRepository.findByEstadoAndFechaEstadoCambioBetween(
+            historial = historialRepository.findByEstadoAndFechaEstadoCambioBetweenOrderByFechaEstadoCambioDesc(
                 estado, fechaInicio, fechaFin);
         } else {
-            historial = historialRepository.findByFechaEstadoCambioBetween(fechaInicio, fechaFin);
+            historial = historialRepository.findByFechaEstadoCambioBetweenOrderByFechaEstadoCambioDesc(
+                fechaInicio, fechaFin);
         }
 
         // Filtrar por nombre de banco si se proporciona
         if (bancoNombre != null && !bancoNombre.isEmpty()) {
-            return historial.stream()
+            historial = historial.stream()
                 .filter(h -> h.getTransaccion().getBanco().getNombreComercial()
                     .toLowerCase()
                     .contains(bancoNombre.toLowerCase()))
                 .collect(Collectors.toList());
         }
 
-        return historial;
+        return historial.stream()
+            .map(historialMapper::toDTO)
+            .collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)
-    public List<HistorialEstadoTransaccion> obtenerHistorialPorFecha(LocalDateTime fecha) {
+    public List<HistorialEstadoTransaccionDTO> obtenerHistorialPorFecha(LocalDateTime fecha) {
         if (fecha == null) {
-            throw new RuntimeException("La fecha es requerida");
+            throw new BusinessException("La fecha es requerida");
         }
 
         LocalDateTime inicioDia = fecha.toLocalDate().atStartOfDay();
         LocalDateTime finDia = fecha.toLocalDate().atTime(23, 59, 59);
 
-        return historialRepository.findByFechaEstadoCambioBetween(inicioDia, finDia);
+        return historialRepository.findByFechaEstadoCambioBetweenOrderByFechaEstadoCambioDesc(inicioDia, finDia)
+            .stream()
+            .map(historialMapper::toDTO)
+            .collect(Collectors.toList());
     }
 
     @Transactional
-    public HistorialEstadoTransaccion registrarCambioEstado(
+    public HistorialEstadoTransaccionDTO registrarCambioEstado(
             Integer transaccionId, String nuevoEstado, String detalle) {
         
         Transaccion transaccion = transaccionRepository.findById(transaccionId)
-                .orElseThrow(() -> new RuntimeException("Transacción no encontrada"));
+                .orElseThrow(() -> new NotFoundException(transaccionId.toString(), "Transaccion"));
 
         validarTransicionEstado(transaccion.getEstado(), nuevoEstado);
 
@@ -85,22 +99,22 @@ public class HistorialEstadoTransaccionService {
         transaccion.setDetalle(detalle);
         transaccionRepository.save(transaccion);
 
-        return historialRepository.save(historial);
+        return historialMapper.toDTO(historialRepository.save(historial));
     }
 
     private void validarTransicionEstado(String estadoActual, String nuevoEstado) {
-        if (estadoActual.equals("REC")) {
-            throw new RuntimeException("No se pueden realizar cambios en una transacción rechazada");
+        if ("REC".equals(estadoActual)) {
+            throw new BusinessException("No se pueden realizar cambios en una transacción rechazada");
         }
         
-        if (estadoActual.equals("APR") && !nuevoEstado.equals("REV")) {
-            throw new RuntimeException("Una transacción aprobada solo puede ser reversada");
+        if ("APR".equals(estadoActual) && !"REV".equals(nuevoEstado)) {
+            throw new BusinessException("Una transacción aprobada solo puede ser reversada");
         }
         
-        if (estadoActual.equals("PEN") && 
-            !nuevoEstado.equals("APR") && 
-            !nuevoEstado.equals("REC")) {
-            throw new RuntimeException(
+        if ("PEN".equals(estadoActual) && 
+            !"APR".equals(nuevoEstado) && 
+            !"REC".equals(nuevoEstado)) {
+            throw new BusinessException(
                 "Una transacción pendiente solo puede ser aprobada o rechazada");
         }
     }
