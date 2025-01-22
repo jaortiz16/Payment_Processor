@@ -30,7 +30,7 @@ interface CommissionState {
   addSegment: (commissionId: number, segment: Omit<CommissionSegment, 'pk'>) => Promise<void>;
 }
 
-const API_URL = 'http://3.145.167.151/api/v1/comisiones';
+const API_URL = 'http://localhost:8080/api/v1/comisiones';
 
 export const useCommissionStore = create<CommissionState>((set) => ({
   commissions: [],
