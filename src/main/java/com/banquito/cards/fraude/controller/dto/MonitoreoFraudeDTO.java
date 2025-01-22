@@ -1,18 +1,15 @@
 package com.banquito.cards.fraude.controller.dto;
 
-import lombok.Builder;
 import lombok.Data;
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Data
-@Builder
 public class MonitoreoFraudeDTO {
-    private Integer codigo;
+    private String codigo;
     private Integer codRegla;
     private Integer codTransaccion;
     private String nivelRiesgo;
-    private BigDecimal puntajeRiesgo;
+    private Integer puntajeRiesgo;
     private String estado;
     private String detalle;
     private String accionTomada;

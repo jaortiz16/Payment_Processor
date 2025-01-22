@@ -32,7 +32,7 @@ const initialFormData: BankFormData = {
   estado: 'ACT',
   comision: {
     codigo: 1,
-    nombre: 'Comisión Estándar',
+    nombre: 'POR',
     porcentaje: 0.5
   }
 };
@@ -84,9 +84,11 @@ export default function BanksPage() {
       nombreComercial: bank.nombreComercial,
       estado: bank.estado,
       comision: {
-        codigo: bank.comision.codigo,
-        nombre: bank.comision.nombre,
-        porcentaje: bank.comision.porcentaje
+        codigo: bank.comision?.codigo || 1,
+        nombre: bank.comision?.nombre || 'POR',
+        porcentaje: typeof bank.comision?.porcentaje === 'string' 
+          ? parseFloat(bank.comision.porcentaje) 
+          : bank.comision?.porcentaje || 0.5
       }
     });
     setIsEditOpen(true);
@@ -142,6 +144,26 @@ export default function BanksPage() {
           value={formData.nombreComercial}
           onChange={(e) => setFormData({ ...formData, nombreComercial: e.target.value })}
           minLength={3}
+          required
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="porcentajeComision">Porcentaje de Comisión (%)</Label>
+        <Input
+          id="porcentajeComision"
+          type="number"
+          step="0.01"
+          min="0"
+          max="100"
+          value={formData.comision.porcentaje}
+          onChange={(e) => setFormData({
+            ...formData,
+            comision: {
+              ...formData.comision,
+              porcentaje: parseFloat(e.target.value)
+            }
+          })}
           required
         />
       </div>
@@ -240,7 +262,9 @@ export default function BanksPage() {
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Comisión:</span>
-                  <span>{bank.comision.porcentaje}%</span>
+                  <span>{typeof bank.comision?.porcentaje === 'string' 
+                    ? parseFloat(bank.comision.porcentaje).toFixed(2) 
+                    : bank.comision?.porcentaje?.toFixed(2) || '0.00'}%</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Fecha Creación:</span>
@@ -248,19 +272,11 @@ export default function BanksPage() {
                 </div>
               </div>
             </CardContent>
-            <CardFooter className="flex justify-end gap-2">
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => handleEdit(bank)}
-              >
+            <CardFooter className="flex justify-end space-x-2">
+              <Button variant="outline" onClick={() => handleEdit(bank)}>
                 Editar
               </Button>
-              <Button 
-                variant="destructive" 
-                size="sm"
-                onClick={() => handleDeactivateBank(bank.codigo)}
-              >
+              <Button variant="destructive" onClick={() => handleDeactivateBank(bank.codigo)}>
                 Desactivar
               </Button>
             </CardFooter>

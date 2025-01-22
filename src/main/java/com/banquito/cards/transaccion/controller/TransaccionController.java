@@ -104,8 +104,8 @@ public class TransaccionController {
                 
                 // 3. Obtenemos el estado final de la transacción y su último historial
                 TransaccionDTO transaccionFinal = transaccionService.obtenerTransaccionPorId(transaccionGuardada.getCodigo());
-                List<HistorialEstadoTransaccion> historiales = historialRepository.findByTransaccionOrderByFechaEstadoCambioDesc(
-                    transaccionMapper.toModel(transaccionFinal));
+                List<HistorialEstadoTransaccion> historiales = historialRepository.findByTransaccionCodigoOrderByFechaEstadoCambioDesc(
+                    transaccionFinal.getCodigo());
                 String detalle = !historiales.isEmpty() ? historiales.get(0).getDetalle() : null;
                 
                 Map<String, String> response = new HashMap<>();

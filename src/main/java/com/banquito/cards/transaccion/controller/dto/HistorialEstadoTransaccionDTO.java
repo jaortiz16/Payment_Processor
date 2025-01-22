@@ -1,17 +1,15 @@
 package com.banquito.cards.transaccion.controller.dto;
 
 import lombok.Data;
-import lombok.Builder;
 import java.time.LocalDateTime;
+import java.math.BigDecimal;
 
 @Data
-@Builder
 public class HistorialEstadoTransaccionDTO {
-    private Integer codigo;
-    private Integer codigoTransaccion;
+    private Integer codHistorialEstado;
+    private String codTransaccion;
     private String estado;
     private LocalDateTime fechaEstadoCambio;
     private String detalle;
-    private String nombreBanco;
-    private String numeroTarjeta;
+    private TransaccionDTO transaccion;
 } 

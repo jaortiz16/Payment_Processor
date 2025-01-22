@@ -11,7 +11,7 @@ export interface Bank {
   comision: {
     codigo: number;
     nombre: string;
-    porcentaje: number;
+    porcentaje: number | string;
   };
   estado: string;
   fechaInactivacion?: string;
@@ -38,12 +38,31 @@ export const useBankStore = create<BankState>((set) => ({
   fetchBanks: async () => {
     try {
       set({ isLoading: true, error: null });
-      const response = await axios.get(`${API_URL}/bancos-activos`);
-      set({ banks: response.data, isLoading: false });
+      const response = await axios.get(`${API_URL}/bancos-activos`, {
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      // Transformar los datos para asegurar que el porcentaje sea un número
+      const banksWithFormattedData = response.data.map((bank: Bank) => ({
+        ...bank,
+        comision: {
+          ...bank.comision,
+          porcentaje: typeof bank.comision?.porcentaje === 'string' 
+            ? parseFloat(bank.comision.porcentaje) 
+            : bank.comision?.porcentaje || 0
+        }
+      }));
+      
+      set({ banks: banksWithFormattedData, isLoading: false });
     } catch (error) {
+      console.error('Error fetching banks:', error);
       set({ 
         error: error instanceof Error ? error.message : 'Error al cargar los bancos', 
-        isLoading: false 
+        isLoading: false,
+        banks: []
       });
     }
   },
@@ -51,12 +70,31 @@ export const useBankStore = create<BankState>((set) => ({
   searchBanks: async (query: string) => {
     try {
       set({ isLoading: true, error: null });
-      const response = await axios.get(`${API_URL}/buscar-nombre?nombreComercial=${query}`);
-      set({ banks: response.data, isLoading: false });
+      const response = await axios.get(`${API_URL}/buscar-nombre?nombreComercial=${query}`, {
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      // Transformar los datos para asegurar que el porcentaje sea un número
+      const banksWithFormattedData = response.data.map((bank: Bank) => ({
+        ...bank,
+        comision: {
+          ...bank.comision,
+          porcentaje: typeof bank.comision?.porcentaje === 'string' 
+            ? parseFloat(bank.comision.porcentaje) 
+            : bank.comision?.porcentaje || 0
+        }
+      }));
+      
+      set({ banks: banksWithFormattedData, isLoading: false });
     } catch (error) {
+      console.error('Error searching banks:', error);
       set({ 
         error: error instanceof Error ? error.message : 'Error al buscar bancos', 
-        isLoading: false 
+        isLoading: false,
+        banks: []
       });
     }
   },
@@ -64,12 +102,18 @@ export const useBankStore = create<BankState>((set) => ({
   createBank: async (bank) => {
     try {
       set({ isLoading: true, error: null });
-      const response = await axios.post(`${API_URL}/agregar-banco`, bank);
+      const response = await axios.post(`${API_URL}/agregar-banco`, bank, {
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        }
+      });
       set((state) => ({ 
         banks: [...state.banks, response.data],
         isLoading: false 
       }));
     } catch (error) {
+      console.error('Error creating bank:', error);
       set({ 
         error: error instanceof Error ? error.message : 'Error al crear el banco', 
         isLoading: false 
@@ -80,12 +124,18 @@ export const useBankStore = create<BankState>((set) => ({
   updateBank: async (id, bank) => {
     try {
       set({ isLoading: true, error: null });
-      const response = await axios.put(`${API_URL}/actualizar-banco/${id}`, bank);
+      const response = await axios.put(`${API_URL}/actualizar-banco/${id}`, bank, {
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        }
+      });
       set((state) => ({
         banks: state.banks.map((b) => b.codigo === id ? response.data : b),
         isLoading: false
       }));
     } catch (error) {
+      console.error('Error updating bank:', error);
       set({ 
         error: error instanceof Error ? error.message : 'Error al actualizar el banco', 
         isLoading: false 
@@ -96,12 +146,18 @@ export const useBankStore = create<BankState>((set) => ({
   deactivateBank: async (id) => {
     try {
       set({ isLoading: true, error: null });
-      await axios.delete(`${API_URL}/inactivar-banco/${id}`);
+      await axios.delete(`${API_URL}/inactivar-banco/${id}`, {
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        }
+      });
       set((state) => ({
         banks: state.banks.filter((b) => b.codigo !== id),
         isLoading: false
       }));
     } catch (error) {
+      console.error('Error deactivating bank:', error);
       set({ 
         error: error instanceof Error ? error.message : 'Error al desactivar el banco', 
         isLoading: false 

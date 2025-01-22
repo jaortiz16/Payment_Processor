@@ -14,6 +14,15 @@ public class BancoDTO {
     private String nombreComercial;
     private LocalDateTime fechaCreacion;
     private Integer codComision;
+    private ComisionDTO comision;
     private String estado;
     private LocalDateTime fechaInactivacion;
+
+    @Data
+    @NoArgsConstructor
+    public static class ComisionDTO {
+        private Integer codigo;
+        private String nombre;
+        private Double porcentaje;
+    }
 } 
