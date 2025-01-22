@@ -1,11 +1,14 @@
 package com.banquito.cards.fraude.controller;
 
+import com.banquito.cards.fraude.controller.dto.MonitoreoFraudeDTO;
+import com.banquito.cards.fraude.controller.mapper.MonitoreoFraudeMapper;
 import com.banquito.cards.fraude.model.MonitoreoFraude;
 import com.banquito.cards.fraude.service.MonitoreoFraudeService;
 import com.banquito.cards.exception.NotFoundException;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
@@ -15,7 +18,9 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/v1/monitoreo-fraude")
 @Validated
@@ -23,40 +28,58 @@ public class MonitoreoFraudeController {
 
     private static final String ENTITY_NAME = "MonitoreoFraude";
     private final MonitoreoFraudeService monitoreoFraudeService;
+    private final MonitoreoFraudeMapper monitoreoFraudeMapper;
 
-    public MonitoreoFraudeController(MonitoreoFraudeService monitoreoFraudeService) {
+    public MonitoreoFraudeController(MonitoreoFraudeService monitoreoFraudeService, 
+                                   MonitoreoFraudeMapper monitoreoFraudeMapper) {
         this.monitoreoFraudeService = monitoreoFraudeService;
+        this.monitoreoFraudeMapper = monitoreoFraudeMapper;
     }
 
     @GetMapping("/alertas/pendientes")
-    public ResponseEntity<List<MonitoreoFraude>> obtenerAlertasFraudePendientes() {
+    public ResponseEntity<?> obtenerAlertasPendientes() {
         try {
-            List<MonitoreoFraude> alertas = monitoreoFraudeService.obtenerAlertasPendientes();
+            List<MonitoreoFraudeDTO> alertas = monitoreoFraudeService.obtenerAlertasPendientes()
+                .stream()
+                .map(monitoreoFraudeMapper::toDTO)
+                .collect(Collectors.toList());
             return ResponseEntity.ok(alertas);
         } catch (RuntimeException e) {
-            throw new RuntimeException("Error al obtener alertas pendientes: " + e.getMessage());
+            Map<String, String> response = new HashMap<>();
+            response.put("error", e.getMessage());
+            return ResponseEntity.badRequest().body(response);
         }
     }
 
     @GetMapping("/alertas/por-fecha")
-    public ResponseEntity<List<MonitoreoFraude>> obtenerAlertasFraudePorFecha(
+    public ResponseEntity<?> obtenerAlertasPorFecha(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime fechaInicio,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime fechaFin) {
         try {
-            List<MonitoreoFraude> alertas = monitoreoFraudeService.obtenerAlertasPorFecha(fechaInicio, fechaFin);
+            List<MonitoreoFraudeDTO> alertas = monitoreoFraudeService.obtenerAlertasPorFecha(fechaInicio, fechaFin)
+                .stream()
+                .map(monitoreoFraudeMapper::toDTO)
+                .collect(Collectors.toList());
             return ResponseEntity.ok(alertas);
         } catch (RuntimeException e) {
-            throw new RuntimeException("Error al obtener alertas por fecha: " + e.getMessage());
+            Map<String, String> response = new HashMap<>();
+            response.put("error", e.getMessage());
+            return ResponseEntity.badRequest().body(response);
         }
     }
 
     @GetMapping("/alertas/por-transaccion/{codTransaccion}")
-    public ResponseEntity<List<MonitoreoFraude>> obtenerAlertasFraudePorTransaccion(@PathVariable Integer codTransaccion) {
+    public ResponseEntity<?> obtenerAlertasPorTransaccion(@PathVariable Integer codTransaccion) {
         try {
-            List<MonitoreoFraude> alertas = monitoreoFraudeService.obtenerAlertasPorTransaccion(codTransaccion);
+            List<MonitoreoFraudeDTO> alertas = monitoreoFraudeService.obtenerAlertasPorTransaccion(codTransaccion)
+                .stream()
+                .map(monitoreoFraudeMapper::toDTO)
+                .collect(Collectors.toList());
             return ResponseEntity.ok(alertas);
         } catch (RuntimeException e) {
-            throw new RuntimeException("Error al obtener alertas por transacción: " + e.getMessage());
+            Map<String, String> response = new HashMap<>();
+            response.put("error", e.getMessage());
+            return ResponseEntity.badRequest().body(response);
         }
     }
 
@@ -87,24 +110,19 @@ public class MonitoreoFraudeController {
     }
 
     @PutMapping("/alertas/{id}/procesar")
-    public ResponseEntity<Map<String, String>> procesarAlertaFraude(
+    public ResponseEntity<?> procesarAlerta(
             @PathVariable Integer id,
-            @RequestParam @Pattern(regexp = "PRO|REC|APR|REV") String estado,
-            @RequestParam(required = false) String detalle,
-            @RequestParam(required = false) String accionTomada,
-            @RequestParam(required = false) Boolean requiereVerificacion,
-            @RequestParam(required = false) String motivoVerificacion) {
+            @RequestParam String estado,
+            @RequestParam(required = false) String detalle) {
         try {
-            monitoreoFraudeService.procesarAlerta(id, estado, detalle, accionTomada, requiereVerificacion, motivoVerificacion);
+            monitoreoFraudeService.procesarAlerta(id, estado, detalle != null ? detalle : "Alerta procesada");
             Map<String, String> response = new HashMap<>();
             response.put("mensaje", "Alerta procesada exitosamente");
             return ResponseEntity.ok(response);
-        } catch (NotFoundException e) {
-            throw e;
-        } catch (IllegalArgumentException e) {
-            throw new RuntimeException("Error de validación: " + e.getMessage());
         } catch (RuntimeException e) {
-            throw new RuntimeException("Error al procesar la alerta: " + e.getMessage());
+            Map<String, String> response = new HashMap<>();
+            response.put("error", e.getMessage());
+            return ResponseEntity.badRequest().body(response);
         }
     }
 

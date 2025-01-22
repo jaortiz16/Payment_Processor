@@ -1,38 +1,39 @@
 package com.banquito.cards.transaccion.controller.dto;
 
-import lombok.Builder;
+import com.banquito.cards.comision.controller.dto.BancoDTO;
 import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Data
-@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class TransaccionDTO {
     private Integer codigo;
     private Integer codigoBanco;
-    private Integer codigoComision;
-    private BigDecimal monto;
+    private String numeroTarjeta;
+    private String marca;
     private String modalidad;
     private String codigoMoneda;
-    private String marca;
-    private String fechaExpiracionTarjeta;
-    private String nombreTarjeta;
-    private String numeroTarjeta;
-    private String direccionTarjeta;
-    private String cvv;
-    private String pais;
+    private BigDecimal monto;
     private String estado;
     private String detalle;
     private String codigoUnicoTransaccion;
+    private String pais;
+    private String fechaExpiracionTarjeta;
+    private String nombreTarjeta;
+    private String direccionTarjeta;
+    private String cvv;
     private LocalDateTime fechaCreacion;
     private LocalDateTime fechaEjecucionRecurrencia;
     private LocalDateTime fechaFinRecurrencia;
+    private Integer cuotas;
     private String gtwComision;
     private String gtwCuenta;
     private String numeroCuenta;
-    private Integer cuotas;
     private Boolean interesDiferido;
     private String beneficiario;
-    private String nombreBanco;
-    private String nombreComision;
+    private BancoDTO banco;
 } 

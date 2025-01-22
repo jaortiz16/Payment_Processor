@@ -14,10 +14,10 @@ public class CorsConfig {
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         CorsConfiguration config = new CorsConfiguration();
         
-        // Permitir orígenes específicos
-        config.addAllowedOrigin("http://localhost:3000"); // Frontend Next.js
+        // Permitir todos los orígenes durante desarrollo
+        config.addAllowedOrigin("http://localhost:3000");
         
-        // Permitir métodos HTTP
+        // Permitir todos los métodos HTTP
         config.addAllowedMethod("*");
         
         // Permitir todos los headers

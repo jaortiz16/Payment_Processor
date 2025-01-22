@@ -1,25 +1,31 @@
 import { create } from 'zustand';
-import axios from 'axios';
 
-export interface Transaction {
-  code: number;
-  transaccion: {
-    codigo: number;
-    monto: number;
-    modalidad: string;
-    codigoMoneda: string;
-    marca: string;
-    banco: {
-      codigo: number;
-      nombreComercial: string;
-    };
-  };
-  estado: string;
-  fechaEstadoCambio: string;
-  detalle: string | null;
+interface Banco {
+  codigo: number;
+  nombreComercial: string;
 }
 
-interface TransactionState {
+interface Transaccion {
+  codTransaccion: number;
+  monto: number;
+  modalidad: string;
+  codigoMoneda: string;
+  marca: string;
+  banco: Banco;
+  estado: string;
+  detalle: string;
+}
+
+interface Transaction {
+  codHistorialEstado: number;
+  codTransaccion: string;
+  estado: string;
+  fechaEstadoCambio: string;
+  detalle: string;
+  transaccion: Transaccion;
+}
+
+interface TransactionStore {
   transactions: Transaction[];
   isLoading: boolean;
   error: string | null;
@@ -29,58 +35,54 @@ interface TransactionState {
     fechaFin?: string;
     bancoNombre?: string;
   }) => Promise<void>;
-  fetchTransactionsByDate: (fecha: string) => Promise<void>;
 }
 
-const API_URL = 'http://localhost:8080/api/v1/historial-estados';
+const API_URL = 'http://localhost:8080';
 
-export const useTransactionStore = create<TransactionState>((set) => ({
+export const useTransactionStore = create<TransactionStore>((set) => ({
   transactions: [],
   isLoading: false,
   error: null,
-  fetchTransactions: async ({ estado, fechaInicio, fechaFin, bancoNombre }) => {
+  fetchTransactions: async (params) => {
+    set({ isLoading: true, error: null });
     try {
-      set({ isLoading: true, error: null });
-      
-      let url = `${API_URL}/transacciones`;
-      const params = new URLSearchParams();
-      
-      if (estado && estado !== 'all') params.append('estado', estado);
-      if (fechaInicio) {
-        const date = new Date(fechaInicio);
-        date.setHours(0, 0, 0, 0);
-        params.append('fechaInicio', date.toISOString());
-      }
-      if (fechaFin) {
-        const date = new Date(fechaFin);
-        date.setHours(23, 59, 59, 999);
-        params.append('fechaFin', date.toISOString());
-      }
-      if (bancoNombre) params.append('bancoNombre', bancoNombre);
-      
-      if (params.toString()) {
-        url += `?${params.toString()}`;
-      }
-      
-      const response = await axios.get(url);
-      set({ transactions: response.data, isLoading: false });
-    } catch (error) {
-      set({ 
-        error: error instanceof Error ? error.message : 'Error al cargar las transacciones', 
-        isLoading: false 
+      const queryParams = new URLSearchParams();
+      if (params.estado && params.estado !== 'ALL') queryParams.append('estado', params.estado);
+      if (params.fechaInicio) queryParams.append('fechaInicio', params.fechaInicio);
+      if (params.fechaFin) queryParams.append('fechaFin', params.fechaFin);
+      if (params.bancoNombre) queryParams.append('bancoNombre', params.bancoNombre);
+
+      const url = `${API_URL}/api/v1/historial-estados/transacciones?${queryParams}`;
+      console.log('Fetching transactions from:', url);
+
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        credentials: 'include',
+        mode: 'cors'
       });
-    }
-  },
-  fetchTransactionsByDate: async (fecha: string) => {
-    try {
-      set({ isLoading: true, error: null });
+
+      console.log('Response status:', response.status);
       
-      const response = await axios.get(`${API_URL}/transacciones/fecha?fecha=${fecha}`);
-      set({ transactions: response.data, isLoading: false });
+      if (!response.ok) {
+        const errorData = await response.text();
+        console.error('Error response:', errorData);
+        throw new Error(errorData || 'Error al cargar las transacciones');
+      }
+
+      const data = await response.json();
+      console.log('Response data:', data);
+
+      set({ transactions: data || [], isLoading: false });
     } catch (error) {
+      console.error('Error fetching transactions:', error);
       set({ 
-        error: error instanceof Error ? error.message : 'Error al cargar las transacciones', 
-        isLoading: false 
+        error: error instanceof Error ? error.message : 'Error al conectar con el servidor', 
+        isLoading: false,
+        transactions: [] 
       });
     }
   },

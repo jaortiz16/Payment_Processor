@@ -16,12 +16,14 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Propagation;
+import lombok.extern.slf4j.Slf4j;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 public class TransaccionService {
     
@@ -101,41 +103,38 @@ public class TransaccionService {
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public TransaccionDTO guardarTransaccion(TransaccionDTO transaccionDTO) {
-        // 1. Validaciones iniciales
+        log.debug("Guardando transacción: {}", transaccionDTO);
+        
+        // 1. Validar código único
         if (transaccionRepository.existsByCodigoUnicoTransaccion(transaccionDTO.getCodigoUnicoTransaccion())) {
             throw new BusinessException("Ya existe una transacción con el código: " + 
                 transaccionDTO.getCodigoUnicoTransaccion());
         }
-        
+
         // 2. Obtener y validar el banco y su comisión
-        if (transaccionDTO.getCodigoBanco() == null) {
-            throw new BusinessException("El código del banco es requerido");
-        }
-        
         Banco banco = bancoRepository.findById(transaccionDTO.getCodigoBanco())
                 .orElseThrow(() -> new NotFoundException(transaccionDTO.getCodigoBanco().toString(), "Banco"));
+        
         if (banco.getComision() == null) {
             throw new BusinessException("El banco no tiene una comisión asignada");
         }
-        
-        Transaccion transaccion = new Transaccion();
-        transaccionMapper.updateModelFromDTO(transaccionDTO, transaccion);
+
+        // 3. Crear y configurar la transacción
+        Transaccion transaccion = transaccionMapper.toModel(transaccionDTO);
         transaccion.setBanco(banco);
         transaccion.setComision(banco.getComision());
         
-        validarTransaccion(transaccion);
-        
-        // 3. Asignar comisión según modalidad
+        // 4. Asignar comisión según modalidad
         if (MODALIDAD_RECURRENTE.equals(transaccion.getModalidad())) {
             asignarComisionRecurrente(transaccion);
         } else {
             asignarComisionSimple(transaccion);
         }
 
-        // 4. Guardar la transacción
-        transaccion.setFechaCreacion(LocalDateTime.now());
-        Transaccion transaccionGuardada = this.transaccionRepository.save(transaccion);
-        registrarCambioEstado(transaccionGuardada, transaccion.getEstado(), "Transacción registrada - Esperando respuesta del banco");
+        // 5. Guardar y registrar estado
+        Transaccion transaccionGuardada = transaccionRepository.save(transaccion);
+        registrarCambioEstado(transaccionGuardada, transaccion.getEstado(), 
+            "Transacción registrada - Esperando respuesta del banco");
         
         return transaccionMapper.toDTO(transaccionGuardada);
     }
@@ -266,6 +265,9 @@ public class TransaccionService {
 
     private void registrarCambioEstado(Transaccion transaccion, String estado, String detalle) {
         try {
+            // Primero guardamos la transacción para asegurar que tenga un ID
+            transaccion = transaccionRepository.save(transaccion);
+            
             HistorialEstadoTransaccion historial = new HistorialEstadoTransaccion();
             historial.setTransaccion(transaccion);
             historial.setEstado(estado);

@@ -1,24 +1,23 @@
 package com.banquito.cards.transaccion.controller.mapper;
 
 import com.banquito.cards.transaccion.model.HistorialEstadoTransaccion;
+import com.banquito.cards.transaccion.model.Transaccion;
 import com.banquito.cards.transaccion.controller.dto.HistorialEstadoTransaccionDTO;
+import org.mapstruct.*;
 import org.springframework.stereotype.Component;
 
 @Component
-public class HistorialEstadoTransaccionMapper {
+@Mapper(
+    componentModel = "spring",
+    unmappedTargetPolicy = ReportingPolicy.IGNORE,
+    uses = {TransaccionMapper.class}
+)
+public interface HistorialEstadoTransaccionMapper {
     
-    public HistorialEstadoTransaccionDTO toDTO(HistorialEstadoTransaccion model) {
-        if (model == null) return null;
-        
-        return HistorialEstadoTransaccionDTO.builder()
-                .codigo(model.getCodigo())
-                .codigoTransaccion(model.getTransaccion().getCodigo())
-                .estado(model.getEstado())
-                .fechaEstadoCambio(model.getFechaEstadoCambio())
-                .detalle(model.getDetalle())
-                .nombreBanco(model.getTransaccion().getBanco() != null ? 
-                    model.getTransaccion().getBanco().getNombreComercial() : null)
-                .numeroTarjeta(model.getTransaccion().getNumeroTarjeta())
-                .build();
-    }
+    @Mapping(target = "codTransaccion", source = "transaccion.codigo")
+    @Mapping(target = "transaccion", source = "transaccion")
+    HistorialEstadoTransaccionDTO toDTO(HistorialEstadoTransaccion model);
+    
+    @InheritInverseConfiguration
+    HistorialEstadoTransaccion toModel(HistorialEstadoTransaccionDTO dto);
 } 

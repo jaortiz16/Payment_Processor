@@ -8,6 +8,7 @@ import com.banquito.cards.transaccion.controller.dto.HistorialEstadoTransaccionD
 import com.banquito.cards.transaccion.controller.mapper.HistorialEstadoTransaccionMapper;
 import com.banquito.cards.exception.BusinessException;
 import com.banquito.cards.exception.NotFoundException;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -15,6 +16,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 public class HistorialEstadoTransaccionService {
 
@@ -36,34 +38,52 @@ public class HistorialEstadoTransaccionService {
     @Transactional(readOnly = true)
     public List<HistorialEstadoTransaccionDTO> obtenerHistorialPorFechaYEstado(
             String estado, LocalDateTime fechaInicio, LocalDateTime fechaFin, String bancoNombre) {
+        log.debug("Obteniendo historial por fecha y estado: estado={}, fechaInicio={}, fechaFin={}, banco={}", 
+            estado, fechaInicio, fechaFin, bancoNombre);
+            
         if (fechaInicio == null || fechaFin == null) {
-            throw new BusinessException("Las fechas de inicio y fin son requeridas");
+            log.debug("Fechas no proporcionadas, usando día actual");
+            LocalDateTime ahora = LocalDateTime.now();
+            fechaInicio = ahora.toLocalDate().atStartOfDay();
+            fechaFin = ahora.toLocalDate().atTime(23, 59, 59);
         }
         if (fechaInicio.isAfter(fechaFin)) {
             throw new BusinessException("La fecha de inicio no puede ser posterior a la fecha fin");
         }
 
         List<HistorialEstadoTransaccion> historial;
-        if (estado != null && !estado.isEmpty()) {
+        if (estado != null && !estado.trim().isEmpty() && !estado.equals("ALL")) {
+            log.debug("Buscando por estado: {}", estado);
             historial = historialRepository.findByEstadoAndFechaEstadoCambioBetweenOrderByFechaEstadoCambioDesc(
                 estado, fechaInicio, fechaFin);
         } else {
+            log.debug("Buscando todas las transacciones en el rango de fechas");
             historial = historialRepository.findByFechaEstadoCambioBetweenOrderByFechaEstadoCambioDesc(
                 fechaInicio, fechaFin);
         }
 
+        log.debug("Registros encontrados: {}", historial.size());
+
         // Filtrar por nombre de banco si se proporciona
-        if (bancoNombre != null && !bancoNombre.isEmpty()) {
+        if (bancoNombre != null && !bancoNombre.trim().isEmpty()) {
+            log.debug("Filtrando por banco: {}", bancoNombre);
             historial = historial.stream()
-                .filter(h -> h.getTransaccion().getBanco().getNombreComercial()
-                    .toLowerCase()
-                    .contains(bancoNombre.toLowerCase()))
+                .filter(h -> h.getTransaccion() != null && 
+                           h.getTransaccion().getBanco() != null && 
+                           h.getTransaccion().getBanco().getNombreComercial() != null &&
+                           h.getTransaccion().getBanco().getNombreComercial()
+                               .toLowerCase()
+                               .contains(bancoNombre.toLowerCase()))
                 .collect(Collectors.toList());
+            log.debug("Registros después del filtro por banco: {}", historial.size());
         }
 
-        return historial.stream()
+        List<HistorialEstadoTransaccionDTO> dtos = historial.stream()
             .map(historialMapper::toDTO)
             .collect(Collectors.toList());
+            
+        log.debug("DTOs generados: {}", dtos.size());
+        return dtos;
     }
 
     @Transactional(readOnly = true)

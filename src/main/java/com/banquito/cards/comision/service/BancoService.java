@@ -1,7 +1,9 @@
 package com.banquito.cards.comision.service;
 
 import com.banquito.cards.comision.model.Banco;
+import com.banquito.cards.comision.model.Comision;
 import com.banquito.cards.comision.repository.BancoRepository;
+import com.banquito.cards.comision.repository.ComisionRepository;
 import com.banquito.cards.exception.NotFoundException;
 
 import org.springframework.stereotype.Service;
@@ -18,9 +20,11 @@ public class BancoService {
     private static final String ESTADO_ACTIVO = "ACT";
     private static final String ESTADO_INACTIVO = "INA";
     private final BancoRepository bancoRepository;
+    private final ComisionRepository comisionRepository;
 
-    public BancoService(BancoRepository bancoRepository) {
+    public BancoService(BancoRepository bancoRepository, ComisionRepository comisionRepository) {
         this.bancoRepository = bancoRepository;
+        this.comisionRepository = comisionRepository;
     }
 
     @Transactional(readOnly = true)
@@ -59,6 +63,14 @@ public class BancoService {
         if (bancoRepository.existsByCodigoInterno(banco.getCodigoInterno())) {
             throw new RuntimeException("Ya existe un banco con el código interno: " + banco.getCodigoInterno());
         }
+        
+        // Validar y cargar la comisión
+        if (banco.getComision() != null && banco.getComision().getCodigo() != null) {
+            Comision comision = comisionRepository.findById(banco.getComision().getCodigo())
+                .orElseThrow(() -> new NotFoundException(banco.getComision().getCodigo().toString(), "Comision"));
+            banco.setComision(comision);
+        }
+        
         banco.setEstado(ESTADO_ACTIVO);
         banco.setFechaCreacion(LocalDateTime.now());
         return this.bancoRepository.save(banco);
@@ -75,6 +87,13 @@ public class BancoService {
         if (!bancoExistente.getCodigoInterno().equals(banco.getCodigoInterno()) && 
             bancoRepository.existsByCodigoInterno(banco.getCodigoInterno())) {
             throw new RuntimeException("Ya existe un banco con el código interno: " + banco.getCodigoInterno());
+        }
+        
+        // Validar y cargar la comisión
+        if (banco.getComision() != null && banco.getComision().getCodigo() != null) {
+            Comision comision = comisionRepository.findById(banco.getComision().getCodigo())
+                .orElseThrow(() -> new NotFoundException(banco.getComision().getCodigo().toString(), "Comision"));
+            bancoExistente.setComision(comision);
         }
         
         bancoExistente.setRazonSocial(banco.getRazonSocial());

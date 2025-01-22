@@ -22,11 +22,11 @@ public class HistorialEstadoTransaccion implements Serializable {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "COD_HISTORIAL_ESTADO", nullable = false)
-    private Integer codigo;
+    private Integer codHistorialEstado;
 
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "COD_TRANSACCION", referencedColumnName = "COD_TRANSACCION")
+    @JoinColumn(name = "CODIGO_TRANSACCION", referencedColumnName = "COD_TRANSACCION", nullable = false)
     private Transaccion transaccion;
 
     @NotNull
