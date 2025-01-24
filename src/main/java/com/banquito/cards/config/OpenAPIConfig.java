@@ -21,7 +21,7 @@ public class OpenAPIConfig {
 
         Contact contact = new Contact();
         contact.setEmail("info@banquito.com");
-        contact.setName("Banquito API Support");
+        contact.setName("API Soporte");
         contact.setUrl("https://www.banquito.com");
 
         License mitLicense = new License()
