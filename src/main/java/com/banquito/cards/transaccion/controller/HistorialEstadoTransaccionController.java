@@ -59,9 +59,11 @@ public class HistorialEstadoTransaccionController {
             @Parameter(description = "Fecha final del rango de búsqueda") 
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime fechaFin,
             @Parameter(description = "Nombre del banco") 
-            @RequestParam(required = false) String bancoNombre) {
+            @RequestParam(required = false) String bancoNombre){
         try {
-            // Si no se proporcionan fechas, usar el día actual
+            log.info("Iniciando búsqueda de historial con estado: {}, fechaInicio: {}, fechaFin: {}, banco: {}",
+                    estado, fechaInicio, fechaFin, bancoNombre);
+
             if (fechaInicio == null && fechaFin == null) {
                 LocalDateTime ahora = LocalDateTime.now();
                 fechaInicio = ahora.toLocalDate().atStartOfDay();
@@ -69,12 +71,13 @@ public class HistorialEstadoTransaccionController {
             }
 
             List<HistorialEstadoTransaccionDTO> historial = historialService.obtenerHistorialPorFechaYEstado(
-                estado, fechaInicio, fechaFin, bancoNombre);
-            
+                    estado, fechaInicio, fechaFin, bancoNombre);
+
+            log.info("Historial obtenido exitosamente, registros encontrados: {}", historial.size());
             return ResponseEntity.ok(historial);
         } catch (RuntimeException e) {
-            log.error("Error al obtener historial de transacciones", e);
-            throw e;
+            log.error("Error al obtener historial de transacciones: {}", e.getMessage(), e);
+            return ResponseEntity.badRequest().build();
         }
     }
 
@@ -89,10 +92,18 @@ public class HistorialEstadoTransaccionController {
             @Parameter(description = "Fecha de búsqueda") 
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime fecha) {
         try {
+            log.info("Buscando historial por fecha: {}", fecha);
             List<HistorialEstadoTransaccionDTO> historial = historialService.obtenerHistorialPorFecha(fecha);
-            return ResponseEntity.ok(historial != null ? historial : new ArrayList<>());
+
+            if (historial == null || historial.isEmpty()) {
+                log.warn("No se encontraron registros para la fecha: {}", fecha);
+                return ResponseEntity.ok(new ArrayList<>());
+            }
+            log.info("Historial encontrado, registros: {}", historial.size());
+            return ResponseEntity.ok(historial);
         } catch (RuntimeException e) {
-            return ResponseEntity.ok(new ArrayList<>());
+            log.error("Error al buscar historial por fecha: {}", e.getMessage(), e);
+            return ResponseEntity.badRequest().build();
         }
     }
 
@@ -111,26 +122,33 @@ public class HistorialEstadoTransaccionController {
             @Parameter(description = "Detalle del cambio de estado") 
             @RequestParam(required = false) String detalle) {
         try {
+            log.info("Registrando cambio de estado para transacción: {}, nuevoEstado: {}, detalle: {}",
+                    transaccionId, nuevoEstado, detalle);
+
             if (transaccionId == null || nuevoEstado == null || nuevoEstado.trim().isEmpty()) {
+                log.warn("Faltan datos obligatorios: transaccionId o nuevoEstado");
                 Map<String, String> response = new HashMap<>();
                 response.put("error", "El ID de transacción y el nuevo estado son requeridos");
                 return ResponseEntity.badRequest().body(response);
             }
 
             HistorialEstadoTransaccionDTO historial = historialService.registrarCambioEstado(
-                transaccionId, nuevoEstado, detalle != null ? detalle : "");
-                
+                    transaccionId, nuevoEstado, detalle != null ? detalle : "");
+
             if (historial == null) {
+                log.warn("No se pudo registrar el cambio de estado para transacción: {}", transaccionId);
                 Map<String, String> response = new HashMap<>();
                 response.put("error", "No se pudo registrar el cambio de estado");
                 return ResponseEntity.badRequest().body(response);
             }
-            
+
+            log.info("Cambio de estado registrado exitosamente para transacción: {}", transaccionId);
             return ResponseEntity.ok(historial);
         } catch (RuntimeException e) {
+            log.error("Error al registrar cambio de estado: {}", e.getMessage(), e);
             Map<String, String> response = new HashMap<>();
             response.put("error", e.getMessage());
             return ResponseEntity.badRequest().body(response);
         }
     }
-} 
+}

@@ -69,113 +69,137 @@ public class TransaccionService {
 
     @Transactional(readOnly = true)
     public List<TransaccionDTO> obtenerTransaccionesPorEstadoYFecha(String estado, LocalDateTime fechaInicio, LocalDateTime fechaFin) {
+        log.info("Buscando transacciones con estado: {}, entre fechas: {} y {}", estado, fechaInicio, fechaFin);
+
         if (fechaInicio == null || fechaFin == null) {
+            log.error("Fechas de inicio y fin no proporcionadas");
             throw new BusinessException("Las fechas de inicio y fin son requeridas");
         }
         if (fechaInicio.isAfter(fechaFin)) {
+            log.error("La fecha de inicio {} es posterior a la fecha fin {}", fechaInicio, fechaFin);
             throw new BusinessException("La fecha de inicio no puede ser posterior a la fecha fin");
         }
-        return this.transaccionRepository
+
+        List<TransaccionDTO> transacciones = this.transaccionRepository
                 .findByEstadoAndFechaCreacionBetweenOrderByFechaCreacionDesc(estado, fechaInicio, fechaFin)
                 .stream()
                 .map(transaccionMapper::toDTO)
                 .collect(Collectors.toList());
+
+        log.info("Transacciones encontradas: {}", transacciones.size());
+        return transacciones;
     }
 
     @Transactional(readOnly = true)
     public TransaccionDTO obtenerTransaccionPorId(Integer id) {
+        log.info("Buscando transacción con ID: {}", id);
         Transaccion transaccion = this.transaccionRepository.findById(id)
-                .orElseThrow(() -> new NotFoundException(id.toString(), ENTITY_NAME));
+                .orElseThrow(() -> {
+                    log.error("Transacción no encontrada con ID: {}", id);
+                    return new NotFoundException(id.toString(), ENTITY_NAME);
+                });
+        log.info("Transacción encontrada: {}", transaccion);
         return transaccionMapper.toDTO(transaccion);
     }
 
     @Transactional(readOnly = true)
     public List<TransaccionDTO> obtenerTransaccionesPorBancoYMonto(Integer codigoBanco, BigDecimal montoMinimo, BigDecimal montoMaximo) {
+        log.info("Buscando transacciones para banco: {}, monto mínimo: {}, monto máximo: {}", codigoBanco, montoMinimo, montoMaximo);
+
         if (montoMinimo != null && montoMaximo != null && montoMinimo.compareTo(montoMaximo) > 0) {
+            log.error("El monto mínimo {} es mayor al monto máximo {}", montoMinimo, montoMaximo);
             throw new BusinessException("El monto mínimo no puede ser mayor al monto máximo");
         }
-        return this.transaccionRepository
+
+        List<TransaccionDTO> transacciones = this.transaccionRepository
                 .findByBancoCodigoAndMontoBetweenOrderByMontoDesc(codigoBanco, montoMinimo, montoMaximo)
                 .stream()
                 .map(transaccionMapper::toDTO)
                 .collect(Collectors.toList());
+
+        log.info("Transacciones encontradas: {}", transacciones.size());
+        return transacciones;
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public TransaccionDTO guardarTransaccion(TransaccionDTO transaccionDTO) {
-        log.debug("Guardando transacción: {}", transaccionDTO);
-        
-        // 1. Validar código único
+        log.info("Guardando transacción: {}", transaccionDTO);
+
         if (transaccionRepository.existsByCodigoUnicoTransaccion(transaccionDTO.getCodigoUnicoTransaccion())) {
-            throw new BusinessException("Ya existe una transacción con el código: " + 
-                transaccionDTO.getCodigoUnicoTransaccion());
+            log.error("Ya existe una transacción con el código único: {}", transaccionDTO.getCodigoUnicoTransaccion());
+            throw new BusinessException("Ya existe una transacción con el código: " + transaccionDTO.getCodigoUnicoTransaccion());
         }
 
-        // 2. Obtener y validar el banco y su comisión
         Banco banco = bancoRepository.findById(transaccionDTO.getCodigoBanco())
-                .orElseThrow(() -> new NotFoundException(transaccionDTO.getCodigoBanco().toString(), "Banco"));
-        
+                .orElseThrow(() -> {
+                    log.error("Banco no encontrado con código: {}", transaccionDTO.getCodigoBanco());
+                    return new NotFoundException(transaccionDTO.getCodigoBanco().toString(), "Banco");
+                });
+
         if (banco.getComision() == null) {
+            log.error("El banco con código {} no tiene una comisión asignada", banco.getCodigo());
             throw new BusinessException("El banco no tiene una comisión asignada");
         }
 
-        // 3. Crear y configurar la transacción
         Transaccion transaccion = transaccionMapper.toModel(transaccionDTO);
         transaccion.setBanco(banco);
         transaccion.setComision(banco.getComision());
-        
-        // 4. Asignar comisión según modalidad
+
         if (MODALIDAD_RECURRENTE.equals(transaccion.getModalidad())) {
             asignarComisionRecurrente(transaccion);
         } else {
             asignarComisionSimple(transaccion);
         }
 
-        // 5. Guardar y registrar estado
         Transaccion transaccionGuardada = transaccionRepository.save(transaccion);
-        registrarCambioEstado(transaccionGuardada, transaccion.getEstado(), 
-            "Transacción registrada - Esperando respuesta del banco");
-        
+        registrarCambioEstado(transaccionGuardada, transaccion.getEstado(), "Transacción registrada - Esperando respuesta del banco");
+
+        log.info("Transacción guardada exitosamente: {}", transaccionGuardada);
         return transaccionMapper.toDTO(transaccionGuardada);
     }
 
     @Transactional
     public void procesarConBanco(Integer transaccionId) {
+        log.info("Procesando transacción con ID: {}", transaccionId);
         Transaccion transaccion = transaccionRepository.findById(transaccionId)
-                .orElseThrow(() -> new NotFoundException(transaccionId.toString(), ENTITY_NAME));
-                
+                .orElseThrow(() -> {
+                    log.error("Transacción no encontrada con ID: {}", transaccionId);
+                    return new NotFoundException(transaccionId.toString(), ENTITY_NAME);
+                });
+
         try {
             ConsumoTarjetaCompleteRequest request = prepararConsumoRequest(transaccion);
-            try {
-                ResponseEntity<RespuestaBanco> respuesta = tarjetaConsumoServiceClient.procesarConsumoTarjeta(request);
-                
-                if (respuesta.getStatusCodeValue() == 201) {
-                    actualizarEstadoTransaccion(transaccion.getCodigo(), ESTADO_APROBADA, 
-                        "Transacción aceptada por el banco");
-                } else {
-                    actualizarEstadoTransaccion(transaccion.getCodigo(), ESTADO_RECHAZADA, 
-                        "Transacción rechazada por el banco");
-                }
-            } catch (Exception e) {
-                String mensajeError = obtenerMensajeError(e);
-                actualizarEstadoTransaccion(transaccion.getCodigo(), ESTADO_RECHAZADA, mensajeError);
+            ResponseEntity<RespuestaBanco> respuesta = tarjetaConsumoServiceClient.procesarConsumoTarjeta(request);
+
+            if (respuesta.getStatusCodeValue() == 201) {
+                log.info("Transacción aceptada por el banco: {}", transaccionId);
+                actualizarEstadoTransaccion(transaccion.getCodigo(), ESTADO_APROBADA, "Transacción aceptada por el banco");
+            } else {
+                log.warn("Transacción rechazada por el banco: {}", transaccionId);
+                actualizarEstadoTransaccion(transaccion.getCodigo(), ESTADO_RECHAZADA, "Transacción rechazada por el banco");
             }
         } catch (Exception e) {
-            throw new BusinessException("Error al procesar la transacción: " + e.getMessage());
+            log.error("Error al procesar transacción con ID: {}, error: {}", transaccionId, e.getMessage());
+            actualizarEstadoTransaccion(transaccion.getCodigo(), ESTADO_RECHAZADA, "Error al procesar transacción: " + e.getMessage());
         }
     }
 
     private void asignarComisionSimple(Transaccion transaccion) {
+        log.debug("Calculando comisión simple para transacción: {}", transaccion);
         BigDecimal comision = comisionService.calcularComision(
-            transaccion.getComision().getCodigo(),
-            1,
-            transaccion.getMonto()
+                transaccion.getComision().getCodigo(),
+                1,
+                transaccion.getMonto()
         );
         transaccion.setGtwComision(comision.toString());
+        log.debug("Comisión simple calculada: {}", comision);
     }
 
     private void asignarComisionRecurrente(Transaccion transaccion) {
+        log.debug("Calculando comisión recurrente para transacción: {}", transaccion);
+
         if (transaccion.getCuotas() == null || transaccion.getCuotas() <= 0) {
+            log.error("El número de cuotas para la transacción es inválido: {}", transaccion.getCuotas());
             throw new BusinessException("El número de cuotas debe ser mayor a cero");
         }
 
@@ -192,29 +216,43 @@ public class TransaccionService {
             transaccion.getMonto()
         );
         transaccion.setGtwComision(comision.toString());
-        
+
+        log.debug("Comisión recurrente calculada: {}", comision);
+
         // Aseguramos que el código único de transacción tenga el largo correcto
         if (transaccion.getCodigoUnicoTransaccion() != null) {
             String codigo = transaccion.getCodigoUnicoTransaccion();
             while (codigo.length() < 32) {
                 codigo = "0" + codigo;
             }
-            transaccion.setCodigoUnicoTransaccion(codigo);
+            log.debug("Código único ajustado: {}", codigo);
         }
+
+        log.info("Cálculo de comisión recurrente completado para transacción: {}", transaccion.getCodigoUnicoTransaccion());
     }
 
     @Transactional
     public TransaccionDTO actualizarEstadoTransaccion(Integer id, String nuevoEstado, String detalle) {
+        log.info("Iniciando actualización de estado para transacción con ID: {}, nuevoEstado: {}, detalle: {}", id, nuevoEstado, detalle);
+
         try {
             Transaccion transaccion = obtenerTransaccionPorEntidad(id);
+            log.debug("Transacción encontrada: {}", transaccion);
+
             validarCambioEstado(transaccion.getEstado(), nuevoEstado);
-            
+            log.debug("Transición de estado válida: {} -> {}", transaccion.getEstado(), nuevoEstado);
+
             transaccion.setEstado(nuevoEstado);
             transaccion = this.transaccionRepository.save(transaccion);
+            log.debug("Estado actualizado en la base de datos para transacción con ID: {}", id);
+
             registrarCambioEstado(transaccion, nuevoEstado, detalle);
+            log.info("Cambio de estado registrado exitosamente para transacción con ID: {}", id);
             
             return transaccionMapper.toDTO(transaccion);
+
         } catch (Exception e) {
+            log.error("Error al actualizar el estado de la transacción con ID: {}, error: {}", id, e.getMessage(), e);
             throw new BusinessException("Error al actualizar el estado de la transacción: " + e.getMessage());
         }
     }

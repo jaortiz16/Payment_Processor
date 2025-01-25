@@ -38,75 +38,83 @@ public class HistorialEstadoTransaccionService {
     @Transactional(readOnly = true)
     public List<HistorialEstadoTransaccionDTO> obtenerHistorialPorFechaYEstado(
             String estado, LocalDateTime fechaInicio, LocalDateTime fechaFin, String bancoNombre) {
-        log.debug("Obteniendo historial por fecha y estado: estado={}, fechaInicio={}, fechaFin={}, banco={}", 
-            estado, fechaInicio, fechaFin, bancoNombre);
-            
+        log.info("Obteniendo historial por estado: {}, fechaInicio: {}, fechaFin: {}, banco: {}",
+                estado, fechaInicio, fechaFin, bancoNombre);
+
         if (fechaInicio == null || fechaFin == null) {
-            log.debug("Fechas no proporcionadas, usando día actual");
+            log.info("Fechas no proporcionadas, usando rango del día actual");
             LocalDateTime ahora = LocalDateTime.now();
             fechaInicio = ahora.toLocalDate().atStartOfDay();
             fechaFin = ahora.toLocalDate().atTime(23, 59, 59);
         }
+
         if (fechaInicio.isAfter(fechaFin)) {
+            log.error("La fecha de inicio es posterior a la fecha fin: fechaInicio={}, fechaFin={}", fechaInicio, fechaFin);
             throw new BusinessException("La fecha de inicio no puede ser posterior a la fecha fin");
         }
 
         List<HistorialEstadoTransaccion> historial;
-        if (estado != null && !estado.trim().isEmpty() && !estado.equals("ALL")) {
-            log.debug("Buscando por estado: {}", estado);
+
+        if (estado != null && !estado.trim().isEmpty() && !"ALL".equalsIgnoreCase(estado)) {
+            log.debug("Filtrando por estado: {}", estado);
             historial = historialRepository.findByEstadoAndFechaEstadoCambioBetweenOrderByFechaEstadoCambioDesc(
-                estado, fechaInicio, fechaFin);
+                    estado, fechaInicio, fechaFin);
         } else {
-            log.debug("Buscando todas las transacciones en el rango de fechas");
-            historial = historialRepository.findByFechaEstadoCambioBetweenOrderByFechaEstadoCambioDesc(
-                fechaInicio, fechaFin);
+            log.debug("Buscando historial para todas las transacciones en el rango de fechas");
+            historial = historialRepository.findByFechaEstadoCambioBetweenOrderByFechaEstadoCambioDesc(fechaInicio, fechaFin);
         }
 
-        log.debug("Registros encontrados: {}", historial.size());
-
-        // Filtrar por nombre de banco si se proporciona
         if (bancoNombre != null && !bancoNombre.trim().isEmpty()) {
-            log.debug("Filtrando por banco: {}", bancoNombre);
+            log.debug("Aplicando filtro por banco: {}", bancoNombre);
             historial = historial.stream()
-                .filter(h -> h.getTransaccion() != null && 
-                           h.getTransaccion().getBanco() != null && 
-                           h.getTransaccion().getBanco().getNombreComercial() != null &&
-                           h.getTransaccion().getBanco().getNombreComercial()
-                               .toLowerCase()
-                               .contains(bancoNombre.toLowerCase()))
-                .collect(Collectors.toList());
-            log.debug("Registros después del filtro por banco: {}", historial.size());
+                    .filter(h -> h.getTransaccion() != null &&
+                            h.getTransaccion().getBanco() != null &&
+                            h.getTransaccion().getBanco().getNombreComercial() != null &&
+                            h.getTransaccion().getBanco().getNombreComercial()
+                                    .toLowerCase().contains(bancoNombre.toLowerCase()))
+                    .collect(Collectors.toList());
         }
 
-        List<HistorialEstadoTransaccionDTO> dtos = historial.stream()
-            .map(historialMapper::toDTO)
-            .collect(Collectors.toList());
-            
-        log.debug("DTOs generados: {}", dtos.size());
-        return dtos;
+        log.info("Total registros encontrados: {}", historial.size());
+
+        return historial.stream()
+                .map(historialMapper::toDTO)
+                .collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)
     public List<HistorialEstadoTransaccionDTO> obtenerHistorialPorFecha(LocalDateTime fecha) {
+        log.info("Obteniendo historial por fecha: {}", fecha);
+
         if (fecha == null) {
+            log.error("Fecha no proporcionada para la búsqueda del historial");
             throw new BusinessException("La fecha es requerida");
         }
 
         LocalDateTime inicioDia = fecha.toLocalDate().atStartOfDay();
         LocalDateTime finDia = fecha.toLocalDate().atTime(23, 59, 59);
 
-        return historialRepository.findByFechaEstadoCambioBetweenOrderByFechaEstadoCambioDesc(inicioDia, finDia)
-            .stream()
-            .map(historialMapper::toDTO)
-            .collect(Collectors.toList());
+        List<HistorialEstadoTransaccionDTO> historial = historialRepository.findByFechaEstadoCambioBetweenOrderByFechaEstadoCambioDesc(
+                        inicioDia, finDia)
+                .stream()
+                .map(historialMapper::toDTO)
+                .collect(Collectors.toList());
+
+        log.info("Registros encontrados para la fecha {}: {}", fecha, historial.size());
+        return historial;
     }
 
     @Transactional
     public HistorialEstadoTransaccionDTO registrarCambioEstado(
             Integer transaccionId, String nuevoEstado, String detalle) {
-        
+        log.info("Registrando cambio de estado para transacción ID: {}, nuevoEstado: {}, detalle: {}",
+                transaccionId, nuevoEstado, detalle);
+
         Transaccion transaccion = transaccionRepository.findById(transaccionId)
-                .orElseThrow(() -> new NotFoundException(transaccionId.toString(), "Transaccion"));
+                .orElseThrow(() -> {
+                    log.error("Transacción no encontrada con ID: {}", transaccionId);
+                    return new NotFoundException(transaccionId.toString(), "Transaccion");
+                });
 
         validarTransicionEstado(transaccion.getEstado(), nuevoEstado);
 
@@ -115,27 +123,37 @@ public class HistorialEstadoTransaccionService {
         historial.setEstado(nuevoEstado);
         historial.setFechaEstadoCambio(LocalDateTime.now());
         historial.setDetalle(detalle);
+
         transaccion.setEstado(nuevoEstado);
         transaccion.setDetalle(detalle);
+
+        historialRepository.save(historial);
         transaccionRepository.save(transaccion);
 
-        return historialMapper.toDTO(historialRepository.save(historial));
+        log.info("Cambio de estado registrado exitosamente para transacción ID: {}", transaccionId);
+        return historialMapper.toDTO(historial);
     }
 
     private void validarTransicionEstado(String estadoActual, String nuevoEstado) {
+        log.debug("Validando transición de estado: {} -> {}", estadoActual, nuevoEstado);
+
         if ("REC".equals(estadoActual)) {
+            log.error("No se puede cambiar el estado de una transacción rechazada");
             throw new BusinessException("No se pueden realizar cambios en una transacción rechazada");
         }
-        
+
         if ("APR".equals(estadoActual) && !"REV".equals(nuevoEstado)) {
+            log.error("Una transacción aprobada solo puede ser reversada");
             throw new BusinessException("Una transacción aprobada solo puede ser reversada");
         }
-        
-        if ("PEN".equals(estadoActual) && 
-            !"APR".equals(nuevoEstado) && 
-            !"REC".equals(nuevoEstado)) {
-            throw new BusinessException(
-                "Una transacción pendiente solo puede ser aprobada o rechazada");
+
+        if ("PEN".equals(estadoActual) &&
+                !"APR".equals(nuevoEstado) &&
+                !"REC".equals(nuevoEstado)) {
+            log.error("Transición no válida para una transacción pendiente: {}", nuevoEstado);
+            throw new BusinessException("Una transacción pendiente solo puede ser aprobada o rechazada");
         }
+
+        log.debug("Transición de estado válida: {} -> {}", estadoActual, nuevoEstado);
     }
 }

@@ -55,9 +55,12 @@ public class TransaccionController {
     @GetMapping("/{id}")
     public ResponseEntity<?> obtenerTransaccion(@PathVariable Integer id) {
         try {
+            log.info("Buscando transacción con ID: {}", id);
             TransaccionDTO transaccion = transaccionService.obtenerTransaccionPorId(id);
+            log.info("Transacción encontrada: {}", transaccion);
             return ResponseEntity.ok(transaccion);
         } catch (RuntimeException e) {
+            log.error("Error al buscar transacción con ID: {}", id, e);
             Map<String, String> response = new HashMap<>();
             response.put("error", e.getMessage());
             return ResponseEntity.status(404).body(response);
@@ -77,10 +80,13 @@ public class TransaccionController {
             @Parameter(description = "Nuevo estado de la transacción") @RequestParam String nuevoEstado,
             @Parameter(description = "Detalle del cambio de estado") @RequestParam(required = false) String detalle) {
         try {
-            return ResponseEntity.ok(
-                    transaccionService.actualizarEstadoTransaccion(id, nuevoEstado, 
-                        detalle != null ? detalle : "Cambio de estado manual"));
+            log.info("Actualizando estado de transacción con ID: {}, nuevoEstado: {}", id, nuevoEstado);
+            TransaccionDTO updatedTransaccion = transaccionService.actualizarEstadoTransaccion(
+                    id, nuevoEstado, detalle != null ? detalle : "Cambio de estado manual");
+            log.info("Estado actualizado exitosamente: {}", updatedTransaccion);
+            return ResponseEntity.ok(updatedTransaccion);
         } catch (RuntimeException e) {
+            log.error("Error al actualizar estado de transacción con ID: {}", id, e);
             Map<String, String> response = new HashMap<>();
             response.put("error", e.getMessage());
             return ResponseEntity.badRequest().body(response);
@@ -95,17 +101,16 @@ public class TransaccionController {
         @ApiResponse(responseCode = "400", description = "Error en los parámetros de búsqueda")
     })
     @GetMapping("/buscar-por-estado-fecha")
-    public ResponseEntity<?> buscarPorEstadoYFecha(
-            @Parameter(description = "Estado de la transacción a buscar") 
-            @RequestParam String estado,
-            @Parameter(description = "Fecha inicial del rango de búsqueda") 
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime fechaInicio,
-            @Parameter(description = "Fecha final del rango de búsqueda") 
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime fechaFin) {
+    public ResponseEntity<?> buscarPorEstadoYFecha(@RequestParam String estado,
+                                                   @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime fechaInicio,
+                                                   @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime fechaFin) {
         try {
-            return ResponseEntity.ok(
-                transaccionService.obtenerTransaccionesPorEstadoYFecha(estado, fechaInicio, fechaFin));
+            log.info("Buscando transacciones con estado: {}, entre fechas: {} y {}", estado, fechaInicio, fechaFin);
+            List<TransaccionDTO> transacciones = transaccionService.obtenerTransaccionesPorEstadoYFecha(estado, fechaInicio, fechaFin);
+            log.info("Transacciones encontradas: {}", transacciones.size());
+            return ResponseEntity.ok(transacciones);
         } catch (RuntimeException e) {
+            log.error("Error al buscar transacciones por estado y fecha", e);
             Map<String, String> response = new HashMap<>();
             response.put("error", e.getMessage());
             return ResponseEntity.badRequest().body(response);
@@ -128,9 +133,12 @@ public class TransaccionController {
             @Parameter(description = "Monto máximo de la transacción") 
             @RequestParam(required = false) BigDecimal montoMaximo) {
         try {
-            return ResponseEntity.ok(
-                transaccionService.obtenerTransaccionesPorBancoYMonto(codigoBanco, montoMinimo, montoMaximo));
+            log.info("Buscando transacciones para banco: {}, rango de montos: {} - {}", codigoBanco, montoMinimo, montoMaximo);
+            List<TransaccionDTO> transacciones = transaccionService.obtenerTransaccionesPorBancoYMonto(codigoBanco, montoMinimo, montoMaximo);
+            log.info("Transacciones encontradas: {}", transacciones.size());
+            return ResponseEntity.ok(transacciones);
         } catch (RuntimeException e) {
+            log.error("Error al buscar transacciones por banco y monto", e);
             Map<String, String> response = new HashMap<>();
             response.put("error", e.getMessage());
             return ResponseEntity.badRequest().body(response);
@@ -146,43 +154,39 @@ public class TransaccionController {
     @PostMapping
     public ResponseEntity<?> crearTransaccion(@RequestBody TransaccionDTO transaccionDTO) {
         try {
-            // 1. Guardamos la transacción como pendiente
+            log.info("Creando nueva transacción: {}", transaccionDTO);
             transaccionDTO.setEstado("PEN");
             transaccionDTO.setFechaCreacion(LocalDateTime.now());
             TransaccionDTO transaccionGuardada = transaccionService.guardarTransaccion(transaccionDTO);
 
-            // 2. Procesamos con el banco y esperamos su respuesta
-            try {
-                transaccionService.procesarConBanco(transaccionGuardada.getCodigo());
-                
-                // 3. Obtenemos el estado final de la transacción y su último historial
-                TransaccionDTO transaccionFinal = transaccionService.obtenerTransaccionPorId(transaccionGuardada.getCodigo());
-                List<HistorialEstadoTransaccion> historiales = historialRepository.findByTransaccionCodigoOrderByFechaEstadoCambioDesc(
+            log.info("Procesando transacción con banco: {}", transaccionGuardada.getCodigo());
+            transaccionService.procesarConBanco(transaccionGuardada.getCodigo());
+
+            TransaccionDTO transaccionFinal = transaccionService.obtenerTransaccionPorId(transaccionGuardada.getCodigo());
+            List<HistorialEstadoTransaccion> historiales = historialRepository.findByTransaccionCodigoOrderByFechaEstadoCambioDesc(
                     transaccionFinal.getCodigo());
-                String detalle = !historiales.isEmpty() ? historiales.get(0).getDetalle() : null;
-                
-                Map<String, String> response = new HashMap<>();
-                
-                switch (transaccionFinal.getEstado()) {
-                    case "APR":
-                        response.put("mensaje", "Transacción aceptada");
-                        return ResponseEntity.status(201).body(response);
-                    case "REC":
-                        response.put("mensaje", "Transacción rechazada");
-                        if (detalle != null) {
-                            response.put("detalle", detalle);
-                        }
-                        return ResponseEntity.status(400).body(response);
-                    default:
-                        response.put("mensaje", "Estado de transacción desconocido");
-                        return ResponseEntity.status(400).body(response);
+
+            String detalle = !historiales.isEmpty() ? historiales.get(0).getDetalle() : null;
+            Map<String, String> response = new HashMap<>();
+
+            if ("APR".equals(transaccionFinal.getEstado())) {
+                response.put("mensaje", "Transacción aceptada");
+                log.info("Transacción aceptada: {}", transaccionFinal);
+                return ResponseEntity.status(201).body(response);
+            } else if ("REC".equals(transaccionFinal.getEstado())) {
+                response.put("mensaje", "Transacción rechazada");
+                if (detalle != null) {
+                    response.put("detalle", detalle);
                 }
-            } catch (Exception e) {
-                Map<String, String> response = new HashMap<>();
-                response.put("error", e.getMessage());
+                log.warn("Transacción rechazada: {}, detalle: {}", transaccionFinal, detalle);
+                return ResponseEntity.status(400).body(response);
+            } else {
+                response.put("mensaje", "Estado de transacción desconocido");
+                log.error("Estado desconocido para transacción: {}", transaccionFinal);
                 return ResponseEntity.status(400).body(response);
             }
         } catch (Exception e) {
+            log.error("Error al crear transacción", e);
             Map<String, String> response = new HashMap<>();
             response.put("error", e.getMessage());
             return ResponseEntity.status(400).body(response);
@@ -199,22 +203,33 @@ public class TransaccionController {
     public ResponseEntity<Map<String, String>> procesarRespuestaFraude(
             @Parameter(description = "Código único de la transacción") @PathVariable String codigoUnicoTransaccion,
             @Parameter(description = "Decisión del sistema de fraude (APROBAR/RECHAZAR)") @RequestParam String decision) {
-        Map<String, String> response = new HashMap<>();
-        TransaccionDTO result = transaccionService.procesarRespuestaFraude(codigoUnicoTransaccion, decision);
-        String mensaje;
-        
-        switch (result.getEstado()) {
-            case "APR":
-                mensaje = "Transacción aceptada";
-                break;
-            case "REC":
-                mensaje = "Transacción rechazada";
-                break;
-            default:
-                mensaje = "Estado de transacción desconocido";
+        try {
+            log.info("Procesando respuesta de fraude para transacción: {}, decisión: {}", codigoUnicoTransaccion, decision);
+            TransaccionDTO result = transaccionService.procesarRespuestaFraude(codigoUnicoTransaccion, decision);
+
+            String mensaje;
+            switch (result.getEstado()) {
+                case "APR":
+                    mensaje = "Transacción aceptada";
+                    log.info("Transacción aceptada por sistema de fraude: {}", codigoUnicoTransaccion);
+                    break;
+                case "REC":
+                    mensaje = "Transacción rechazada";
+                    log.warn("Transacción rechazada por sistema de fraude: {}", codigoUnicoTransaccion);
+                    break;
+                default:
+                    mensaje = "Estado de transacción desconocido";
+                    log.error("Estado desconocido para transacción: {}", codigoUnicoTransaccion);
+            }
+
+            Map<String, String> response = new HashMap<>();
+            response.put("mensaje", mensaje);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("Error al procesar respuesta de fraude para transacción: {}", codigoUnicoTransaccion, e);
+            Map<String, String> response = new HashMap<>();
+            response.put("error", e.getMessage());
+            return ResponseEntity.status(400).body(response);
         }
-        
-        response.put("mensaje", mensaje);
-        return ResponseEntity.ok(response);
     }
 }
