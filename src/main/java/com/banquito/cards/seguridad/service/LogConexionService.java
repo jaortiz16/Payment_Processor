@@ -6,12 +6,14 @@ import com.banquito.cards.seguridad.model.SeguridadMarca;
 import com.banquito.cards.seguridad.repository.LogConexionRepository;
 import com.banquito.cards.seguridad.repository.SeguridadBancoRepository;
 import com.banquito.cards.seguridad.repository.SeguridadMarcaRepository;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
 
+@Slf4j
 @Service
 public class LogConexionService {
 
@@ -30,24 +32,51 @@ public class LogConexionService {
     @Transactional
     public LogConexion registrarConexion(String marca, Integer codBanco, String ipOrigen,
                                        String operacion, String resultado) {
-        SeguridadMarca seguridadMarca = seguridadMarcaRepository.findById(marca)
-                .orElseThrow(() -> new RuntimeException("Marca no encontrada"));
-        
-        SeguridadBanco seguridadBanco = seguridadBancoRepository.findById(codBanco)
-                .orElseThrow(() -> new RuntimeException("Banco no encontrado"));
+        log.info("Intentando registrar una conexión: marca={}, codBanco={}, ipOrigen={}, operacion={}, resultado={}",
+                marca, codBanco, ipOrigen, operacion, resultado);
 
-        if (!"ACT".equals(seguridadBanco.getEstado())) {
-            throw new RuntimeException("Las credenciales del banco están inactivas");
+        SeguridadMarca seguridadMarca;
+        SeguridadBanco seguridadBanco;
+
+        try {
+            seguridadMarca = seguridadMarcaRepository.findById(marca)
+                    .orElseThrow(() -> {
+                        log.error("Marca no encontrada: {}", marca);
+                        return new RuntimeException("Marca no encontrada");
+                    });
+
+            seguridadBanco = seguridadBancoRepository.findById(codBanco)
+                    .orElseThrow(() -> {
+                        log.error("Banco no encontrado: codBanco={}", codBanco);
+                        return new RuntimeException("Banco no encontrado");
+                    });
+
+            if (!"ACT".equals(seguridadBanco.getEstado())) {
+                log.error("Las credenciales del banco están inactivas: codBanco={}", codBanco);
+                throw new RuntimeException("Las credenciales del banco están inactivas");
+            }
+
+        } catch (RuntimeException e) {
+            log.error("Error en la validación de la conexión: {}", e.getMessage());
+            throw e;
         }
 
-        LogConexion log = new LogConexion();
-        log.setSeguridadMarca(seguridadMarca);
-        log.setSeguridadBanco(seguridadBanco);
-        log.setIpOrigen(ipOrigen);
-        log.setOperacion(operacion);
-        log.setResultado(resultado);
-        log.setFecha(LocalDateTime.now());
+        try {
+            LogConexion logConexion = new LogConexion();
+            logConexion.setSeguridadMarca(seguridadMarca);
+            logConexion.setSeguridadBanco(seguridadBanco);
+            logConexion.setIpOrigen(ipOrigen);
+            logConexion.setOperacion(operacion);
+            logConexion.setResultado(resultado);
+            logConexion.setFecha(LocalDateTime.now());
 
-        return logConexionRepository.save(log);
+            LogConexion savedLog = logConexionRepository.save(logConexion);
+            log.info("Registro de conexión exitoso: {}", savedLog);
+            return savedLog;
+
+        } catch (Exception e) {
+            log.error("Error al registrar la conexión: {}", e.getMessage());
+            throw new RuntimeException("Error al registrar la conexión", e);
+        }
     }
 }

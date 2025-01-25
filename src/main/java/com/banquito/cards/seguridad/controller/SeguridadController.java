@@ -10,10 +10,12 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+@Slf4j
 @Tag(name = "Seguridad", description = "API para la gestión de seguridad de bancos, marcas y gateways")
 @RestController
 @RequestMapping("/api/v1/seguridad")
@@ -36,9 +38,13 @@ public class SeguridadController {
     public ResponseEntity<SeguridadBanco> crearSeguridadBanco(
             @Parameter(description = "Datos de seguridad del banco") 
             @RequestBody SeguridadBanco seguridadBanco) {
+        log.info("Intentando registrar nueva configuración de seguridad para banco: {}", seguridadBanco);
         try {
-            return ResponseEntity.ok(seguridadService.crearSeguridadBanco(seguridadBanco));
+            SeguridadBanco createdBanco = seguridadService.crearSeguridadBanco(seguridadBanco);
+            log.info("Registro exitoso de configuración de seguridad para banco: {}", createdBanco);
+            return ResponseEntity.ok(createdBanco);
         } catch (RuntimeException e) {
+            log.error("Error al registrar configuración de seguridad para banco: {}, error: {}", seguridadBanco, e.getMessage());
             return ResponseEntity.badRequest().build();
         }
     }
@@ -53,9 +59,16 @@ public class SeguridadController {
     public ResponseEntity<SeguridadBanco> obtenerSeguridadBanco(
             @Parameter(description = "ID del banco") 
             @PathVariable Integer id) {
+        log.info("Buscando configuración de seguridad para banco con ID: {}", id);
         return seguridadService.obtenerSeguridadBancoPorId(id)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+                .map(banco -> {
+                    log.info("Configuración encontrada para banco con ID: {}", id);
+                    return ResponseEntity.ok(banco);
+                })
+                .orElseGet(() -> {
+                    log.warn("No se encontró configuración para banco con ID: {}", id);
+                    return ResponseEntity.notFound().build();
+                });
     }
 
     @Operation(summary = "Actualizar seguridad de marca", 
@@ -71,9 +84,13 @@ public class SeguridadController {
             @PathVariable String marca,
             @Parameter(description = "Nueva clave de seguridad") 
             @RequestParam String nuevaClave) {
+        log.info("Intentando actualizar clave de seguridad para marca: {}, nuevaClave: {}", marca, nuevaClave);
         try {
-            return ResponseEntity.ok(seguridadService.actualizarSeguridadMarca(marca, nuevaClave));
+            SeguridadMarca updatedMarca = seguridadService.actualizarSeguridadMarca(marca, nuevaClave);
+            log.info("Actualización exitosa de clave de seguridad para marca: {}", updatedMarca);
+            return ResponseEntity.ok(updatedMarca);
         } catch (RuntimeException e) {
+            log.error("Error al actualizar clave de seguridad para marca: {}, error: {}", marca, e.getMessage());
             return ResponseEntity.badRequest().build();
         }
     }
@@ -89,9 +106,13 @@ public class SeguridadController {
     public ResponseEntity<SeguridadGateway> crearSeguridadGateway(
             @Parameter(description = "Datos de seguridad del gateway") 
             @RequestBody SeguridadGateway seguridadGateway) {
+        log.info("Intentando registrar nueva configuración de seguridad para gateway: {}", seguridadGateway);
         try {
-            return ResponseEntity.ok(seguridadService.crearSeguridadGateway(seguridadGateway));
+            SeguridadGateway createdGateway = seguridadService.crearSeguridadGateway(seguridadGateway);
+            log.info("Registro exitoso de configuración de seguridad para gateway: {}", createdGateway);
+            return ResponseEntity.ok(createdGateway);
         } catch (RuntimeException e) {
+            log.error("Error al registrar configuración de seguridad para gateway: {}, error: {}", seguridadGateway, e.getMessage());
             return ResponseEntity.badRequest().build();
         }
     }
@@ -109,11 +130,14 @@ public class SeguridadController {
             @PathVariable Integer id,
             @Parameter(description = "Nueva clave de seguridad") 
             @RequestParam String nuevaClave) {
+        log.info("Intentando actualizar clave de seguridad para procesador con ID: {}, nuevaClave: {}", id, nuevaClave);
         try {
-            return ResponseEntity.ok(seguridadService.actualizarSeguridadProcesador(id, nuevaClave));
+            SeguridadProcesador updatedProcesador = seguridadService.actualizarSeguridadProcesador(id, nuevaClave);
+            log.info("Actualización exitosa de clave de seguridad para procesador: {}", updatedProcesador);
+            return ResponseEntity.ok(updatedProcesador);
         } catch (RuntimeException e) {
+            log.error("Error al actualizar clave de seguridad para procesador con ID: {}, error: {}", id, e.getMessage());
             return ResponseEntity.badRequest().build();
         }
     }
-
-} 
+}

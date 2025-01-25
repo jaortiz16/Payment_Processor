@@ -10,6 +10,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
@@ -18,6 +19,7 @@ import org.springframework.web.bind.annotation.*;
 import java.time.LocalDateTime;
 import java.util.List;
 
+@Slf4j
 @Tag(name = "Logs de Conexión", description = "API para el registro y consulta de logs de conexión")
 @RestController
 @RequestMapping("/api/v1/logs-conexion")
@@ -48,11 +50,16 @@ public class LogConexionController {
             @RequestParam String operacion,
             @Parameter(description = "Resultado de la operación") 
             @RequestParam String resultado) {
+        log.info("Intentando registrar nueva conexión: marca={}, codBanco={}, ipOrigen={}, operacion={}, resultado={}",
+                marca, codBanco, ipOrigen, operacion, resultado);
         try {
-            return ResponseEntity.ok(
-                    logConexionService.registrarConexion(marca, codBanco, ipOrigen, operacion, resultado));
+            LogConexion logConexion = logConexionService.registrarConexion(marca, codBanco, ipOrigen, operacion, resultado);
+            log.info("Registro de conexión exitoso para marca={}, codBanco={}, ipOrigen={}", marca, codBanco, ipOrigen);
+            return ResponseEntity.ok(logConexion);
         } catch (RuntimeException e) {
+            log.error("Error al registrar la conexión: marca={}, codBanco={}, ipOrigen={}, operacion={}, resultado={}, error={}",
+                    marca, codBanco, ipOrigen, operacion, resultado, e.getMessage());
             return ResponseEntity.badRequest().build();
         }
     }
-} 
+}
