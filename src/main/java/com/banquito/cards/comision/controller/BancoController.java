@@ -5,6 +5,7 @@ import com.banquito.cards.comision.controller.mapper.BancoMapper;
 import com.banquito.cards.comision.model.Banco;
 import com.banquito.cards.comision.service.BancoService;
 import com.banquito.cards.exception.NotFoundException;
+import com.banquito.cards.exception.BusinessException;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -17,14 +18,13 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import jakarta.validation.Valid;
 import java.util.List;
-import java.util.Map;
-import java.util.HashMap;
 import java.util.stream.Collectors;
 
 @Tag(name = "Bancos", description = "API para la gestión de bancos y sus comisiones")
 @RestController
-@RequestMapping("/api/v1/bancos")
+@RequestMapping("/v1/bancos")
 public class BancoController {
 
     private static final String ENTITY_NAME = "Banco";
@@ -36,80 +36,50 @@ public class BancoController {
         this.bancoMapper = bancoMapper;
     }
 
-    @Operation(summary = "Obtener bancos activos", 
-               description = "Retorna la lista de todos los bancos que están activos en el sistema")
+    @Operation(summary = "Listar bancos", description = "Retorna todos los bancos con opciones de filtrado y ordenamiento")
     @ApiResponses({
         @ApiResponse(responseCode = "200", description = "Lista de bancos obtenida exitosamente",
                     content = {@Content(schema = @Schema(implementation = BancoDTO.class))}),
-        @ApiResponse(responseCode = "400", description = "Error al obtener los bancos")
+        @ApiResponse(responseCode = "400", description = "Parámetros de filtrado inválidos")
     })
-    @GetMapping("/bancos-activos")
-    public ResponseEntity<List<BancoDTO>> obtenerBancosActivos() {
-        try {
-            List<Banco> bancos = bancoService.obtenerBancosActivos();
-            List<BancoDTO> bancosDTO = bancos.stream()
-                    .map(bancoMapper::toDTO)
-                    .collect(Collectors.toList());
-            return ResponseEntity.ok(bancosDTO);
-        } catch (RuntimeException e) {
-            throw new RuntimeException("Error al obtener bancos activos: " + e.getMessage());
-        }
-    }
-
-    @Operation(summary = "Buscar bancos por razón social", 
-               description = "Retorna los bancos que coincidan con la razón social y estado especificados")
-    @ApiResponses({
-        @ApiResponse(responseCode = "200", description = "Búsqueda realizada exitosamente"),
-        @ApiResponse(responseCode = "404", description = "No se encontraron bancos")
-    })
-    @GetMapping("/buscar-por-razon-social")
-    public ResponseEntity<List<BancoDTO>> obtenerBancosPorRazonSocialYEstado(
+    @GetMapping
+    public ResponseEntity<List<BancoDTO>> listarBancos(
             @Parameter(description = "Razón social del banco") 
-            @RequestParam String razonSocial,
-            @Parameter(description = "Estado del banco (por defecto: ACT)") 
-            @RequestParam(required = false, defaultValue = "ACT") String estado) {
-        try {
-            List<Banco> bancos = bancoService.obtenerBancosPorRazonSocialYEstado(razonSocial, estado);
-            List<BancoDTO> bancosDTO = bancos.stream()
-                    .map(bancoMapper::toDTO)
-                    .collect(Collectors.toList());
-            return ResponseEntity.ok(bancosDTO);
-        } catch (RuntimeException e) {
-            throw new NotFoundException(razonSocial, ENTITY_NAME);
-        }
-    }
-
-    @Operation(summary = "Buscar bancos por nombre comercial", 
-               description = "Retorna los bancos que coincidan con el nombre comercial y estado especificados")
-    @ApiResponses({
-        @ApiResponse(responseCode = "200", description = "Búsqueda realizada exitosamente"),
-        @ApiResponse(responseCode = "404", description = "No se encontraron bancos")
-    })
-    @GetMapping("/buscar-nombre")
-    public ResponseEntity<List<BancoDTO>> obtenerBancosPorNombreYEstado(
+            @RequestParam(required = false) String razonSocial,
             @Parameter(description = "Nombre comercial del banco") 
-            @RequestParam String nombreComercial,
-            @Parameter(description = "Estado del banco (por defecto: ACT)") 
-            @RequestParam(required = false, defaultValue = "ACT") String estado) {
+            @RequestParam(required = false) String nombreComercial,
+            @Parameter(description = "Estado del banco (ACT o INA)") 
+            @RequestParam(required = false, defaultValue = "ACT") String estado,
+            @Parameter(description = "Campo por el cual ordenar (razonSocial, nombreComercial, fechaCreacion)") 
+            @RequestParam(required = false, defaultValue = "codigo") String sortBy,
+            @Parameter(description = "Dirección del ordenamiento (asc o desc)") 
+            @RequestParam(required = false, defaultValue = "asc") String sortDir) {
         try {
-            List<Banco> bancos = bancoService.obtenerBancosPorNombreYEstado(nombreComercial, estado);
+            List<Banco> bancos;
+            if (razonSocial != null) {
+                bancos = bancoService.obtenerBancosPorRazonSocialYEstado(razonSocial, estado);
+            } else if (nombreComercial != null) {
+                bancos = bancoService.obtenerBancosPorNombreYEstado(nombreComercial, estado);
+            } else {
+                bancos = bancoService.obtenerTodosLosBancos(sortBy, sortDir);
+            }
+            
             List<BancoDTO> bancosDTO = bancos.stream()
                     .map(bancoMapper::toDTO)
                     .collect(Collectors.toList());
             return ResponseEntity.ok(bancosDTO);
         } catch (RuntimeException e) {
-            throw new NotFoundException(nombreComercial, ENTITY_NAME);
+            throw new BusinessException("listar bancos", ENTITY_NAME, e.getMessage());
         }
     }
 
-    @Operation(summary = "Obtener banco por ID", 
-               description = "Retorna un banco específico basado en su ID")
+    @Operation(summary = "Obtener banco por ID", description = "Retorna un banco específico basado en su ID")
     @ApiResponses({
         @ApiResponse(responseCode = "200", description = "Banco encontrado exitosamente"),
         @ApiResponse(responseCode = "404", description = "Banco no encontrado")
     })
     @GetMapping("/{id}")
-    public ResponseEntity<BancoDTO> obtenerBancoPorId(
+    public ResponseEntity<BancoDTO> obtenerBanco(
             @Parameter(description = "ID del banco") 
             @PathVariable Integer id) {
         try {
@@ -120,97 +90,68 @@ public class BancoController {
         }
     }
 
-    @Operation(summary = "Obtener banco por RUC", 
-               description = "Retorna un banco específico basado en su número de RUC")
-    @ApiResponses({
-        @ApiResponse(responseCode = "200", description = "Banco encontrado exitosamente"),
-        @ApiResponse(responseCode = "404", description = "Banco no encontrado")
-    })
-    @GetMapping("/ruc/{ruc}")
-    public ResponseEntity<BancoDTO> obtenerBancoPorRuc(
-            @Parameter(description = "Número de RUC del banco") 
-            @PathVariable String ruc) {
-        try {
-            Banco banco = bancoService.obtenerBancoPorRuc(ruc);
-            return ResponseEntity.ok(bancoMapper.toDTO(banco));
-        } catch (RuntimeException e) {
-            throw new NotFoundException(ruc, ENTITY_NAME);
-        }
-    }
-
-    @Operation(summary = "Crear nuevo banco", 
-               description = "Registra un nuevo banco en el sistema")
+    @Operation(summary = "Crear nuevo banco", description = "Registra un nuevo banco en el sistema")
     @ApiResponses({
         @ApiResponse(responseCode = "200", description = "Banco creado exitosamente"),
         @ApiResponse(responseCode = "400", description = "Error en los datos del banco")
     })
-    @PostMapping("/agregar-banco")
+    @PostMapping
     public ResponseEntity<BancoDTO> crearBanco(
-            @Parameter(description = "Datos del banco a crear") 
-            @RequestBody BancoDTO bancoDTO) {
+            @Parameter(description = "Datos del banco") 
+            @Valid @RequestBody BancoDTO bancoDTO) {
         try {
             Banco banco = bancoMapper.toModel(bancoDTO);
             Banco bancoCreado = bancoService.crearBanco(banco);
             return ResponseEntity.ok(bancoMapper.toDTO(bancoCreado));
         } catch (RuntimeException e) {
-            throw new RuntimeException("Error al crear el banco: " + e.getMessage());
+            throw new BusinessException(bancoDTO.getRuc(), ENTITY_NAME, "crear");
         }
     }
 
-    @Operation(summary = "Actualizar banco", 
-               description = "Actualiza la información de un banco existente")
+    @Operation(summary = "Actualizar banco", description = "Actualiza un banco existente")
     @ApiResponses({
         @ApiResponse(responseCode = "200", description = "Banco actualizado exitosamente"),
-        @ApiResponse(responseCode = "400", description = "Error en los datos del banco"),
         @ApiResponse(responseCode = "404", description = "Banco no encontrado")
     })
-    @PutMapping("/actualizar-banco/{id}")
+    @PutMapping("/{id}")
     public ResponseEntity<BancoDTO> actualizarBanco(
-            @Parameter(description = "ID del banco a actualizar") 
-            @PathVariable Integer id, 
-            @Parameter(description = "Nuevos datos del banco") 
-            @RequestBody BancoDTO bancoDTO) {
+            @Parameter(description = "ID del banco") 
+            @PathVariable Integer id,
+            @Parameter(description = "Datos actualizados del banco") 
+            @Valid @RequestBody BancoDTO bancoDTO) {
         try {
             Banco banco = bancoMapper.toModel(bancoDTO);
             Banco bancoActualizado = bancoService.actualizarBanco(id, banco);
             return ResponseEntity.ok(bancoMapper.toDTO(bancoActualizado));
         } catch (RuntimeException e) {
-            throw new RuntimeException("Error al actualizar el banco: " + e.getMessage());
+            throw new BusinessException(id.toString(), ENTITY_NAME, "actualizar");
         }
     }
 
-    @Operation(summary = "Inactivar banco", 
-               description = "Cambia el estado de un banco a inactivo")
+    @Operation(summary = "Inactivar banco", description = "Cambia el estado de un banco a inactivo")
     @ApiResponses({
         @ApiResponse(responseCode = "200", description = "Banco inactivado exitosamente"),
-        @ApiResponse(responseCode = "400", description = "Error al inactivar el banco"),
         @ApiResponse(responseCode = "404", description = "Banco no encontrado")
     })
-    @DeleteMapping("/inactivar-banco/{id}")
-    public ResponseEntity<Map<String, String>> inactivarBanco(
-            @Parameter(description = "ID del banco a inactivar") 
+    @DeleteMapping("/{id}")
+    public ResponseEntity<String> inactivarBanco(
+            @Parameter(description = "ID del banco") 
             @PathVariable Integer id) {
         try {
             bancoService.inactivarBanco(id);
-            Map<String, String> response = new HashMap<>();
-            response.put("mensaje", "Banco inactivado exitosamente");
-            return ResponseEntity.ok(response);
+            return ResponseEntity.ok("Banco inactivado exitosamente");
         } catch (RuntimeException e) {
-            throw new RuntimeException("Error al inactivar el banco: " + e.getMessage());
+            throw new BusinessException(id.toString(), ENTITY_NAME, "inactivar");
         }
     }
 
-    @ExceptionHandler(NotFoundException.class)
-    public ResponseEntity<Map<String, String>> handleNotFoundException(NotFoundException e) {
-        Map<String, String> response = new HashMap<>();
-        response.put("error", e.getMessage());
-        return ResponseEntity.status(404).body(response);
+    @ExceptionHandler({NotFoundException.class})
+    public ResponseEntity<String> handleNotFoundException(NotFoundException e) {
+        return ResponseEntity.status(404).body(e.getMessage());
     }
 
-    @ExceptionHandler(RuntimeException.class)
-    public ResponseEntity<Map<String, String>> handleRuntimeException(RuntimeException e) {
-        Map<String, String> response = new HashMap<>();
-        response.put("error", e.getMessage());
-        return ResponseEntity.status(400).body(response);
+    @ExceptionHandler({BusinessException.class})
+    public ResponseEntity<String> handleBusinessException(BusinessException e) {
+        return ResponseEntity.status(400).body(e.getMessage());
     }
 }

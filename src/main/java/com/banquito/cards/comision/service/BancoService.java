@@ -5,7 +5,9 @@ import com.banquito.cards.comision.model.Comision;
 import com.banquito.cards.comision.repository.BancoRepository;
 import com.banquito.cards.comision.repository.ComisionRepository;
 import com.banquito.cards.exception.NotFoundException;
+import com.banquito.cards.exception.BusinessException;
 
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,6 +27,13 @@ public class BancoService {
     public BancoService(BancoRepository bancoRepository, ComisionRepository comisionRepository) {
         this.bancoRepository = bancoRepository;
         this.comisionRepository = comisionRepository;
+    }
+
+    @Transactional(readOnly = true)
+    public List<Banco> obtenerTodosLosBancos(String sortBy, String sortDir) {
+        Sort.Direction direction = Sort.Direction.fromString(sortDir.toUpperCase());
+        Sort sort = Sort.by(direction, sortBy);
+        return this.bancoRepository.findAll(sort);
     }
 
     @Transactional(readOnly = true)
@@ -58,13 +67,12 @@ public class BancoService {
     public Banco crearBanco(Banco banco) {
         validarBanco(banco);
         if (bancoRepository.existsByRuc(banco.getRuc())) {
-            throw new RuntimeException("Ya existe un banco con el RUC: " + banco.getRuc());
+            throw new BusinessException(banco.getRuc(), ENTITY_NAME, "crear - RUC duplicado");
         }
         if (bancoRepository.existsByCodigoInterno(banco.getCodigoInterno())) {
-            throw new RuntimeException("Ya existe un banco con el código interno: " + banco.getCodigoInterno());
+            throw new BusinessException(banco.getCodigoInterno(), ENTITY_NAME, "crear - código interno duplicado");
         }
         
-        // Validar y cargar la comisión
         if (banco.getComision() != null && banco.getComision().getCodigo() != null) {
             Comision comision = comisionRepository.findById(banco.getComision().getCodigo())
                 .orElseThrow(() -> new NotFoundException(banco.getComision().getCodigo().toString(), "Comision"));
@@ -82,14 +90,13 @@ public class BancoService {
         
         if (!bancoExistente.getRuc().equals(banco.getRuc()) && 
             bancoRepository.existsByRuc(banco.getRuc())) {
-            throw new RuntimeException("Ya existe un banco con el RUC: " + banco.getRuc());
+            throw new BusinessException(banco.getRuc(), ENTITY_NAME, "actualizar - RUC duplicado");
         }
         if (!bancoExistente.getCodigoInterno().equals(banco.getCodigoInterno()) && 
             bancoRepository.existsByCodigoInterno(banco.getCodigoInterno())) {
-            throw new RuntimeException("Ya existe un banco con el código interno: " + banco.getCodigoInterno());
+            throw new BusinessException(banco.getCodigoInterno(), ENTITY_NAME, "actualizar - código interno duplicado");
         }
         
-        // Validar y cargar la comisión
         if (banco.getComision() != null && banco.getComision().getCodigo() != null) {
             Comision comision = comisionRepository.findById(banco.getComision().getCodigo())
                 .orElseThrow(() -> new NotFoundException(banco.getComision().getCodigo().toString(), "Comision"));
@@ -107,7 +114,7 @@ public class BancoService {
     public void inactivarBanco(Integer id) {
         Banco banco = obtenerBancoPorId(id);
         if (ESTADO_INACTIVO.equals(banco.getEstado())) {
-            throw new RuntimeException("El banco ya se encuentra inactivo");
+            throw new BusinessException(id.toString(), ENTITY_NAME, "inactivar - banco ya inactivo");
         }
         banco.setEstado(ESTADO_INACTIVO);
         banco.setFechaInactivacion(LocalDateTime.now());
@@ -116,22 +123,22 @@ public class BancoService {
 
     private void validarBanco(Banco banco) {
         if (banco.getRazonSocial() == null || banco.getRazonSocial().trim().isEmpty()) {
-            throw new RuntimeException("La razón social es requerida");
+            throw new BusinessException("razón social", ENTITY_NAME, "validar - campo requerido");
         }
         if (banco.getNombreComercial() == null || banco.getNombreComercial().trim().isEmpty()) {
-            throw new RuntimeException("El nombre comercial es requerido");
+            throw new BusinessException("nombre comercial", ENTITY_NAME, "validar - campo requerido");
         }
         if (banco.getRuc() == null || banco.getRuc().trim().isEmpty()) {
-            throw new RuntimeException("El RUC es requerido");
+            throw new BusinessException("RUC", ENTITY_NAME, "validar - campo requerido");
         }
         if (banco.getCodigoInterno() == null || banco.getCodigoInterno().trim().isEmpty()) {
-            throw new RuntimeException("El código interno es requerido");
+            throw new BusinessException("código interno", ENTITY_NAME, "validar - campo requerido");
         }
     }
 
     private void validarEstado(String estado) {
         if (!List.of(ESTADO_ACTIVO, ESTADO_INACTIVO).contains(estado)) {
-            throw new RuntimeException("Estado inválido. Use: ACT o INA");
+            throw new BusinessException(estado, ENTITY_NAME, "validar - estado inválido");
         }
     }
 }

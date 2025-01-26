@@ -4,14 +4,20 @@ import com.banquito.cards.comision.model.Banco;
 import com.banquito.cards.comision.model.Comision;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
+import lombok.EqualsAndHashCode;
 import java.io.Serializable;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
-@Data
+@Getter
+@Setter
+@ToString
 @NoArgsConstructor
+@EqualsAndHashCode(of = "codigo")
 @Entity
 @Table(name = "TRANSACCION")
 public class Transaccion implements Serializable {
@@ -142,4 +148,8 @@ public class Transaccion implements Serializable {
     @Size(max = 128)
     @Column(name = "BENEFICIARIO", length = 128)
     private String beneficiario;
+
+    public Transaccion(Integer codigo) {
+        this.codigo = codigo;
+    }
 }
