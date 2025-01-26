@@ -1,10 +1,12 @@
 package com.banquito.cards.fraude.controller;
 
 import com.banquito.cards.fraude.controller.dto.MonitoreoFraudeDTO;
+import com.banquito.cards.fraude.controller.dto.FraudeResponseDTO;
 import com.banquito.cards.fraude.controller.mapper.MonitoreoFraudeMapper;
 import com.banquito.cards.fraude.model.MonitoreoFraude;
 import com.banquito.cards.fraude.service.MonitoreoFraudeService;
 import com.banquito.cards.exception.NotFoundException;
+import com.banquito.cards.exception.BusinessException;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -14,25 +16,26 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
-import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 @Slf4j
 @Tag(name = "Monitoreo de Fraude", description = "API para la gestión y monitoreo de alertas de fraude")
 @RestController
-@RequestMapping("/api/v1/monitoreo-fraude")
+@RequestMapping("/v1/fraudes/monitoreo")
 @Validated
 public class MonitoreoFraudeController {
 
@@ -46,160 +49,126 @@ public class MonitoreoFraudeController {
         this.monitoreoFraudeMapper = monitoreoFraudeMapper;
     }
 
-    @Operation(summary = "Obtener alertas pendientes", 
-               description = "Retorna todas las alertas de fraude que están pendientes de revisión")
-    @ApiResponses({
-        @ApiResponse(responseCode = "200", description = "Lista de alertas pendientes obtenida exitosamente",
-                    content = {@Content(schema = @Schema(implementation = MonitoreoFraudeDTO.class))}),
-        @ApiResponse(responseCode = "400", description = "Error al obtener las alertas pendientes")
-    })
-    @GetMapping("/alertas/pendientes")
-    public ResponseEntity<?> obtenerAlertasPendientes() {
-        try {
-            List<MonitoreoFraudeDTO> alertas = monitoreoFraudeService.obtenerAlertasPendientes()
-                .stream()
-                .map(monitoreoFraudeMapper::toDTO)
-                .collect(Collectors.toList());
-            return ResponseEntity.ok(alertas);
-        } catch (RuntimeException e) {
-            Map<String, String> response = new HashMap<>();
-            response.put("error", e.getMessage());
-            return ResponseEntity.badRequest().body(response);
-        }
-    }
-
-    @Operation(summary = "Obtener alertas por rango de fechas", 
-               description = "Retorna las alertas de fraude dentro de un rango de fechas específico")
-    @ApiResponses({
-        @ApiResponse(responseCode = "200", description = "Lista de alertas obtenida exitosamente"),
-        @ApiResponse(responseCode = "400", description = "Error en los parámetros de fecha")
-    })
-    @GetMapping("/alertas/por-fecha")
-    public ResponseEntity<?> obtenerAlertasPorFecha(
-            @Parameter(description = "Fecha de inicio de la búsqueda") 
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime fechaInicio,
-            @Parameter(description = "Fecha fin de la búsqueda") 
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime fechaFin) {
-        try {
-            List<MonitoreoFraudeDTO> alertas = monitoreoFraudeService.obtenerAlertasPorFecha(fechaInicio, fechaFin)
-                .stream()
-                .map(monitoreoFraudeMapper::toDTO)
-                .collect(Collectors.toList());
-            return ResponseEntity.ok(alertas);
-        } catch (RuntimeException e) {
-            Map<String, String> response = new HashMap<>();
-            response.put("error", e.getMessage());
-            return ResponseEntity.badRequest().body(response);
-        }
-    }
-
-    @Operation(summary = "Obtener alertas por transacción", 
-               description = "Retorna todas las alertas de fraude asociadas a una transacción específica")
+    @Operation(summary = "Listar alertas de fraude", description = "Retorna todas las alertas de fraude con paginación, filtrado y ordenamiento")
     @ApiResponses({
         @ApiResponse(responseCode = "200", description = "Lista de alertas obtenida exitosamente",
                     content = {@Content(schema = @Schema(implementation = MonitoreoFraudeDTO.class))}),
-        @ApiResponse(responseCode = "400", description = "Error al obtener las alertas")
+        @ApiResponse(responseCode = "400", description = "Parámetros de búsqueda inválidos")
     })
-    @GetMapping("/alertas/por-transaccion/{codTransaccion}")
-    public ResponseEntity<?> obtenerAlertasPorTransaccion(
-            @Parameter(description = "Código de la transacción a consultar") 
-            @PathVariable Integer codTransaccion) {
+    @GetMapping
+    public ResponseEntity<Page<MonitoreoFraudeDTO>> listarAlertas(
+            @Parameter(description = "Número de página (0..N)") 
+            @RequestParam(defaultValue = "0") int page,
+            @Parameter(description = "Tamaño de la página") 
+            @RequestParam(defaultValue = "20") int size,
+            @Parameter(description = "Campo por el cual ordenar") 
+            @RequestParam(defaultValue = "fechaDeteccion") String sortBy,
+            @Parameter(description = "Dirección del ordenamiento (asc o desc)") 
+            @RequestParam(defaultValue = "desc") String sortDir,
+            @Parameter(description = "Estado de la alerta (PEN, PRO, REC, APR, REV)") 
+            @RequestParam(required = false) String estado,
+            @Parameter(description = "Nivel de riesgo (BAJ, MED, ALT)") 
+            @RequestParam(required = false) String nivelRiesgo) {
         try {
-            List<MonitoreoFraudeDTO> alertas = monitoreoFraudeService.obtenerAlertasPorTransaccion(codTransaccion)
-                .stream()
-                .map(monitoreoFraudeMapper::toDTO)
-                .collect(Collectors.toList());
-            return ResponseEntity.ok(alertas);
+            Sort.Direction direction = Sort.Direction.fromString(sortDir.toUpperCase());
+            Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
+            
+            Page<MonitoreoFraude> alertas = monitoreoFraudeService.obtenerAlertas(pageable, estado, nivelRiesgo);
+            Page<MonitoreoFraudeDTO> alertasDTO = alertas.map(monitoreoFraudeMapper::toDTO);
+            
+            return ResponseEntity.ok(alertasDTO);
         } catch (RuntimeException e) {
-            Map<String, String> response = new HashMap<>();
-            response.put("error", e.getMessage());
-            return ResponseEntity.badRequest().body(response);
+            throw new BusinessException("listar alertas", ENTITY_NAME, e.getMessage());
         }
     }
 
-    @Operation(summary = "Obtener alertas por número de tarjeta", 
-               description = "Retorna las alertas de fraude asociadas a una tarjeta específica")
+    @Operation(summary = "Obtener alerta por ID", description = "Retorna una alerta específica basada en su ID")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Alerta encontrada exitosamente"),
+        @ApiResponse(responseCode = "404", description = "Alerta no encontrada")
+    })
+    @GetMapping("/{id}")
+    public ResponseEntity<MonitoreoFraudeDTO> obtenerAlerta(
+            @Parameter(description = "ID de la alerta") 
+            @PathVariable String id) {
+        try {
+            MonitoreoFraude alerta = monitoreoFraudeService.obtenerAlertaPorId(id);
+            return ResponseEntity.ok(monitoreoFraudeMapper.toDTO(alerta));
+        } catch (RuntimeException e) {
+            throw new NotFoundException(id, ENTITY_NAME);
+        }
+    }
+
+    @Operation(summary = "Obtener alertas por transacción", description = "Retorna las alertas asociadas a una transacción específica")
     @ApiResponses({
         @ApiResponse(responseCode = "200", description = "Lista de alertas obtenida exitosamente"),
         @ApiResponse(responseCode = "400", description = "Error en los parámetros de búsqueda")
     })
-    @GetMapping("/alertas/por-tarjeta/{numeroTarjeta}")
-    public ResponseEntity<List<MonitoreoFraude>> obtenerAlertasFraudePorTarjeta(
-            @Parameter(description = "Número de tarjeta a consultar") 
+    @GetMapping("/transacciones/{codTransaccion}")
+    public ResponseEntity<List<MonitoreoFraudeDTO>> obtenerAlertasPorTransaccion(
+            @Parameter(description = "Código de la transacción") 
+            @PathVariable Integer codTransaccion) {
+        try {
+            List<MonitoreoFraude> alertas = monitoreoFraudeService.obtenerAlertasPorTransaccion(codTransaccion);
+            List<MonitoreoFraudeDTO> alertasDTO = alertas.stream()
+                    .map(monitoreoFraudeMapper::toDTO)
+                    .collect(Collectors.toList());
+            return ResponseEntity.ok(alertasDTO);
+        } catch (RuntimeException e) {
+            throw new BusinessException(codTransaccion.toString(), ENTITY_NAME, "buscar por transacción");
+        }
+    }
+
+    @Operation(summary = "Obtener alertas por tarjeta", description = "Retorna las alertas asociadas a una tarjeta en un rango de fechas")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Lista de alertas obtenida exitosamente"),
+        @ApiResponse(responseCode = "400", description = "Error en los parámetros de búsqueda")
+    })
+    @GetMapping("/tarjetas/{numeroTarjeta}")
+    public ResponseEntity<List<MonitoreoFraudeDTO>> obtenerAlertasPorTarjeta(
+            @Parameter(description = "Número de tarjeta") 
             @PathVariable @NotBlank String numeroTarjeta,
-            @Parameter(description = "Fecha de inicio de la búsqueda") 
+            @Parameter(description = "Fecha de inicio") 
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime fechaInicio,
-            @Parameter(description = "Fecha fin de la búsqueda") 
+            @Parameter(description = "Fecha fin") 
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime fechaFin) {
         try {
             List<MonitoreoFraude> alertas = monitoreoFraudeService.obtenerAlertasPorTarjeta(numeroTarjeta, fechaInicio, fechaFin);
-            return ResponseEntity.ok(alertas);
+            List<MonitoreoFraudeDTO> alertasDTO = alertas.stream()
+                    .map(monitoreoFraudeMapper::toDTO)
+                    .collect(Collectors.toList());
+            return ResponseEntity.ok(alertasDTO);
         } catch (RuntimeException e) {
-            throw new RuntimeException("Error al obtener alertas por tarjeta: " + e.getMessage());
+            throw new BusinessException(numeroTarjeta, ENTITY_NAME, "buscar por tarjeta");
         }
     }
 
-    @Operation(summary = "Obtener alerta por ID", 
-               description = "Retorna una alerta de fraude específica basada en su ID")
+    @Operation(summary = "Actualizar estado de alerta", description = "Actualiza el estado de una alerta de fraude")
     @ApiResponses({
-        @ApiResponse(responseCode = "200", description = "Alerta encontrada exitosamente",
-                    content = {@Content(schema = @Schema(implementation = MonitoreoFraude.class))}),
-        @ApiResponse(responseCode = "404", description = "Alerta no encontrada"),
-        @ApiResponse(responseCode = "400", description = "Error al obtener la alerta")
-    })
-    @GetMapping("/alertas/{id}")
-    public ResponseEntity<MonitoreoFraude> obtenerAlertaFraudePorId(
-            @Parameter(description = "ID de la alerta a consultar") 
-            @PathVariable Integer id) {
-        try {
-            MonitoreoFraude alerta = monitoreoFraudeService.obtenerAlertaPorId(id)
-                    .orElseThrow(() -> new NotFoundException(id.toString(), ENTITY_NAME));
-            return ResponseEntity.ok(alerta);
-        } catch (NotFoundException e) {
-            throw e;
-        } catch (RuntimeException e) {
-            throw new RuntimeException("Error al obtener la alerta: " + e.getMessage());
-        }
-    }
-
-    @Operation(summary = "Procesar alerta de fraude", 
-               description = "Actualiza el estado de una alerta de fraude y registra la decisión tomada")
-    @ApiResponses({
-        @ApiResponse(responseCode = "200", description = "Alerta procesada exitosamente"),
-        @ApiResponse(responseCode = "400", description = "Error en el procesamiento de la alerta"),
+        @ApiResponse(responseCode = "200", description = "Estado actualizado exitosamente"),
         @ApiResponse(responseCode = "404", description = "Alerta no encontrada")
     })
-    @PutMapping("/alertas/{id}/procesar")
-    public ResponseEntity<?> procesarAlerta(
-            @Parameter(description = "ID de la alerta de fraude") 
-            @PathVariable Integer id,
-            @Parameter(description = "Nuevo estado de la alerta") 
-            @RequestParam String estado,
-            @Parameter(description = "Detalle o comentarios sobre la decisión") 
-            @RequestParam(required = false) String detalle) {
+    @PatchMapping("/{id}/estado")
+    public ResponseEntity<MonitoreoFraudeDTO> actualizarEstadoAlerta(
+            @Parameter(description = "ID de la alerta") 
+            @PathVariable String id,
+            @Parameter(description = "Nuevo estado") 
+            @RequestParam @Pattern(regexp = "PEN|PRO|REC|APR|REV") String estado) {
         try {
-            monitoreoFraudeService.procesarAlerta(id, estado, detalle != null ? detalle : "Alerta procesada");
-            Map<String, String> response = new HashMap<>();
-            response.put("mensaje", "Alerta procesada exitosamente");
-            return ResponseEntity.ok(response);
+            MonitoreoFraude alerta = monitoreoFraudeService.actualizarEstadoAlerta(id, estado);
+            return ResponseEntity.ok(monitoreoFraudeMapper.toDTO(alerta));
         } catch (RuntimeException e) {
-            Map<String, String> response = new HashMap<>();
-            response.put("error", e.getMessage());
-            return ResponseEntity.badRequest().body(response);
+            throw new BusinessException(id, ENTITY_NAME, "actualizar estado");
         }
     }
 
-    @ExceptionHandler(NotFoundException.class)
-    public ResponseEntity<Map<String, String>> handleNotFoundException(NotFoundException e) {
-        Map<String, String> response = new HashMap<>();
-        response.put("error", e.getMessage());
-        return ResponseEntity.status(404).body(response);
+    @ExceptionHandler({NotFoundException.class})
+    public ResponseEntity<FraudeResponseDTO> handleNotFoundException(NotFoundException e) {
+        return ResponseEntity.status(404).body(new FraudeResponseDTO(e.getMessage(), true));
     }
 
-    @ExceptionHandler(RuntimeException.class)
-    public ResponseEntity<Map<String, String>> handleRuntimeException(RuntimeException e) {
-        Map<String, String> response = new HashMap<>();
-        response.put("error", e.getMessage());
-        return ResponseEntity.status(400).body(response);
+    @ExceptionHandler({BusinessException.class})
+    public ResponseEntity<FraudeResponseDTO> handleBusinessException(BusinessException e) {
+        return ResponseEntity.status(400).body(new FraudeResponseDTO(e.getMessage(), true));
     }
 } 

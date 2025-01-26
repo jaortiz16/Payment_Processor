@@ -20,6 +20,10 @@ public interface ReglaFraudeRepository extends JpaRepository<ReglaFraude, Intege
     
     List<ReglaFraude> findByNivelRiesgoAndEstado(String nivelRiesgo, String estado);
     
+    List<ReglaFraude> findByTipoReglaAndEstadoOrderByPrioridadAsc(String tipoRegla, String estado);
+    
+    List<ReglaFraude> findByNivelRiesgoAndEstadoOrderByPrioridadAsc(String nivelRiesgo, String estado);
+    
     boolean existsByNombreReglaAndEstado(String nombreRegla, String estado);
     
     List<ReglaFraude> findByPuntajeRiesgoGreaterThanEqualAndEstado(

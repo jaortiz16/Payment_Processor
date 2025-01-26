@@ -2,15 +2,21 @@ package com.banquito.cards.fraude.model;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
+import lombok.EqualsAndHashCode;
 import java.io.Serializable;
 import java.time.LocalDateTime;
-import java.math.BigDecimal;
+
 import com.banquito.cards.transaccion.model.Transaccion;
 
-@Data
+@Getter
+@Setter
+@ToString
 @NoArgsConstructor
+@EqualsAndHashCode(of = "codigo")
 @Entity
 @Table(name = "MONITOREO_FRAUDE")
 public class MonitoreoFraude implements Serializable {
@@ -93,4 +99,13 @@ public class MonitoreoFraude implements Serializable {
 
     @Column(name = "UBICACION_GEOGRAFICA", length = 128)
     private String ubicacionGeografica;
+
+    @PastOrPresent
+    @Temporal(TemporalType.TIMESTAMP)
+    @Column(name = "FECHA_ACTUALIZACION")
+    private LocalDateTime fechaActualizacion;
+
+    public MonitoreoFraude(String codigo) {
+        this.codigo = codigo;
+    }
 }
