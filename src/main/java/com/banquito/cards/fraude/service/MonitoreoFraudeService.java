@@ -9,10 +9,11 @@ import com.banquito.cards.transaccion.repository.TransaccionRepository;
 import com.banquito.cards.exception.BusinessException;
 import com.banquito.cards.exception.NotFoundException;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
@@ -25,6 +26,11 @@ public class MonitoreoFraudeService {
 
     private static final String ENTITY_NAME = "MonitoreoFraude";
     private static final String ESTADO_ACTIVO = "ACT";
+    private static final String ESTADO_PENDIENTE = "PEN";
+    private static final String ESTADO_PROCESADO = "PRO";
+    private static final String ESTADO_RECHAZADO = "REC";
+    private static final String ESTADO_APROBADO = "APR";
+    private static final String ESTADO_REVISION = "REV";
     private static final String TIPO_REGLA_MONTO = "MNT";
     private static final String TIPO_REGLA_TRANSACCION = "TRX";
     private static final String TIPO_REGLA_UBICACION = "UBI";
@@ -44,9 +50,89 @@ public class MonitoreoFraudeService {
         this.transaccionRepository = transaccionRepository;
     }
 
+    @Transactional(readOnly = true)
+    public Page<MonitoreoFraude> obtenerAlertas(Pageable pageable, String estado, String nivelRiesgo) {
+        log.info("Obteniendo alertas con estado: {}, nivel de riesgo: {}", estado, nivelRiesgo);
+        
+        if (estado != null && nivelRiesgo != null) {
+            validarEstado(estado);
+            validarNivelRiesgo(nivelRiesgo);
+            return monitoreoFraudeRepository.findByEstadoAndNivelRiesgo(estado, nivelRiesgo, pageable);
+        } else if (estado != null) {
+            validarEstado(estado);
+            return monitoreoFraudeRepository.findByEstado(estado, pageable);
+        } else if (nivelRiesgo != null) {
+            validarNivelRiesgo(nivelRiesgo);
+            return monitoreoFraudeRepository.findByNivelRiesgo(nivelRiesgo, pageable);
+        }
+        
+        return monitoreoFraudeRepository.findAll(pageable);
+    }
+
+    @Transactional(readOnly = true)
+    public MonitoreoFraude obtenerAlertaPorId(String id) {
+        log.info("Buscando alerta con ID: {}", id);
+        return monitoreoFraudeRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException(id, ENTITY_NAME));
+    }
+
+    @Transactional(readOnly = true)
+    public List<MonitoreoFraude> obtenerAlertasPorTransaccion(Integer codTransaccion) {
+        log.info("Buscando alertas para la transacción: {}", codTransaccion);
+        if (codTransaccion == null) {
+            throw new BusinessException("El código de transacción es requerido", ENTITY_NAME, "validar id");
+        }
+        return monitoreoFraudeRepository.findByTransaccionCodigo(codTransaccion);
+    }
+
+    @Transactional(readOnly = true)
+    public List<MonitoreoFraude> obtenerAlertasPorTarjeta(String numeroTarjeta, LocalDateTime fechaInicio, LocalDateTime fechaFin) {
+        log.info("Buscando alertas para la tarjeta: {} entre {} y {}", numeroTarjeta, fechaInicio, fechaFin);
+        validarParametrosBusqueda(numeroTarjeta, fechaInicio, fechaFin);
+        return monitoreoFraudeRepository.findByTransaccionNumeroTarjetaAndFechaDeteccionBetween(
+                numeroTarjeta, fechaInicio, fechaFin);
+    }
+
+    @Transactional
+    public MonitoreoFraude actualizarEstadoAlerta(String id, String estado) {
+        log.info("Actualizando estado de alerta {} a {}", id, estado);
+        validarEstado(estado);
+        
+        MonitoreoFraude alerta = obtenerAlertaPorId(id);
+        alerta.setEstado(estado);
+        alerta.setFechaActualizacion(LocalDateTime.now());
+        
+        return monitoreoFraudeRepository.save(alerta);
+    }
+
+    private void validarEstado(String estado) {
+        if (!List.of(ESTADO_PENDIENTE, ESTADO_PROCESADO, ESTADO_RECHAZADO, 
+                     ESTADO_APROBADO, ESTADO_REVISION).contains(estado)) {
+            throw new BusinessException(estado, ENTITY_NAME, "estado inválido");
+        }
+    }
+
+    private void validarNivelRiesgo(String nivelRiesgo) {
+        if (!List.of("BAJ", "MED", "ALT").contains(nivelRiesgo)) {
+            throw new BusinessException(nivelRiesgo, ENTITY_NAME, "nivel de riesgo inválido");
+        }
+    }
+
+    private void validarParametrosBusqueda(String numeroTarjeta, LocalDateTime fechaInicio, LocalDateTime fechaFin) {
+        if (numeroTarjeta == null || numeroTarjeta.trim().isEmpty()) {
+            throw new BusinessException("El número de tarjeta es requerido", ENTITY_NAME, "validar tarjeta");
+        }
+        if (fechaInicio == null || fechaFin == null) {
+            throw new BusinessException("Las fechas de inicio y fin son requeridas", ENTITY_NAME, "validar fechas");
+        }
+        if (fechaInicio.isAfter(fechaFin)) {
+            throw new BusinessException("La fecha de inicio no puede ser posterior a la fecha fin", ENTITY_NAME, "validar fechas");
+        }
+    }
+
     public String evaluarRiesgoTransaccion(Transaccion transaccion) {
         if (transaccion == null) {
-            throw new BusinessException("La transacción es requerida para evaluar el riesgo");
+            throw new BusinessException("La transacción es requerida para evaluar el riesgo", ENTITY_NAME, "evaluar riesgo");
         }
 
         try {
@@ -91,14 +177,14 @@ public class MonitoreoFraudeService {
                             nivelRiesgoMayor = regla.getNivelRiesgo();
                         }
                     } catch (Exception e) {
-                        throw new BusinessException("Error al crear monitoreo de fraude: " + e.getMessage());
+                        throw new BusinessException(e.getMessage(), ENTITY_NAME, "crear monitoreo");
                     }
                 }
             }
 
             return nivelRiesgoMayor;
         } catch (Exception e) {
-            throw new BusinessException("Error al evaluar riesgo de transacción: " + e.getMessage());
+            throw new BusinessException(e.getMessage(), ENTITY_NAME, "evaluar riesgo");
         }
     }
 
@@ -151,7 +237,7 @@ public class MonitoreoFraudeService {
             case PERIODO_SEMANA:
                 return fechaReferencia.minus(7, ChronoUnit.DAYS);
             default:
-                throw new BusinessException("Periodo de tiempo no válido");
+                throw new BusinessException("Periodo de tiempo no válido", ENTITY_NAME, "validar periodo");
         }
     }
 
@@ -211,48 +297,28 @@ public class MonitoreoFraudeService {
     @Transactional(readOnly = true)
     public List<MonitoreoFraude> obtenerAlertasPorFecha(LocalDateTime fechaInicio, LocalDateTime fechaFin) {
         if (fechaInicio == null || fechaFin == null) {
-            throw new BusinessException("Las fechas de inicio y fin son requeridas");
+            throw new BusinessException("Las fechas de inicio y fin son requeridas", ENTITY_NAME, "validar fechas");
         }
         if (fechaInicio.isAfter(fechaFin)) {
-            throw new BusinessException("La fecha de inicio no puede ser posterior a la fecha fin");
+            throw new BusinessException("La fecha de inicio no puede ser posterior a la fecha fin", ENTITY_NAME, "validar fechas");
         }
         return monitoreoFraudeRepository.findByFechaDeteccionBetween(fechaInicio, fechaFin);
-    }
-
-    @Transactional(readOnly = true)
-    public List<MonitoreoFraude> obtenerAlertasPorTransaccion(Integer codTransaccion) {
-        if (codTransaccion == null) {
-            throw new BusinessException("El código de transacción es requerido");
-        }
-        return monitoreoFraudeRepository.findByTransaccionCodigo(codTransaccion);
-    }
-
-    @Transactional(readOnly = true)
-    public List<MonitoreoFraude> obtenerAlertasPorTarjeta(String numeroTarjeta, LocalDateTime fechaInicio, LocalDateTime fechaFin) {
-        if (fechaInicio == null || fechaFin == null) {
-            throw new BusinessException("Las fechas de inicio y fin son requeridas");
-        }
-        if (fechaInicio.isAfter(fechaFin)) {
-            throw new BusinessException("La fecha de inicio no puede ser posterior a la fecha fin");
-        }
-        return monitoreoFraudeRepository.findByTransaccionNumeroTarjetaAndFechaDeteccionBetween(
-            numeroTarjeta, fechaInicio, fechaFin);
     }
 
     @Transactional
     public void procesarAlerta(Integer id, String estado, String detalle) {
         if (id == null) {
-            throw new BusinessException("El ID de la alerta es requerido");
+            throw new BusinessException("El ID de la alerta es requerido", ENTITY_NAME, "validar id");
         }
         if (estado == null || estado.trim().isEmpty()) {
-            throw new BusinessException("El estado es requerido");
+            throw new BusinessException("El estado es requerido", ENTITY_NAME, "validar estado");
         }
 
         MonitoreoFraude alerta = monitoreoFraudeRepository.findById(id.toString())
             .orElseThrow(() -> new NotFoundException(id.toString(), ENTITY_NAME));
 
         if (!"PEN".equals(alerta.getEstado())) {
-            throw new BusinessException("Solo se pueden procesar alertas pendientes");
+            throw new BusinessException("Solo se pueden procesar alertas pendientes", ENTITY_NAME, "validar estado pendiente");
         }
 
         alerta.setEstado(estado);
@@ -271,7 +337,7 @@ public class MonitoreoFraudeService {
     @Transactional(readOnly = true)
     public Optional<MonitoreoFraude> obtenerAlertaPorId(Integer id) {
         if (id == null) {
-            throw new BusinessException("El ID de la alerta es requerido");
+            throw new BusinessException("El ID de la alerta es requerido", ENTITY_NAME, "validar id");
         }
         return monitoreoFraudeRepository.findById(id.toString());
     }

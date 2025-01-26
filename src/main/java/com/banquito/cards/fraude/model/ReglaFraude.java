@@ -2,14 +2,20 @@ package com.banquito.cards.fraude.model;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
+import lombok.EqualsAndHashCode;
 import java.io.Serializable;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
-@Data
+@Getter
+@Setter
+@ToString
 @NoArgsConstructor
+@EqualsAndHashCode(of = "codRegla")
 @Entity
 @Table(name = "REGLA_FRAUDE")
 public class ReglaFraude implements Serializable {
@@ -115,5 +121,9 @@ public class ReglaFraude implements Serializable {
 
     @Column(name = "USUARIO_ACTUALIZACION", length = 50)
     private String usuarioActualizacion;
+
+    public ReglaFraude(Integer codRegla) {
+        this.codRegla = codRegla;
+    }
 }
 
