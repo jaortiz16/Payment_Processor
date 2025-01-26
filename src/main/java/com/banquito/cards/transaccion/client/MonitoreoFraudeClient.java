@@ -1,7 +1,7 @@
 package com.banquito.cards.transaccion.client;
 
-import com.banquito.cards.transaccion.model.RespuestaMonitoreoFraude;
-import com.banquito.cards.transaccion.model.ProcesamientoFraudeRequest;
+import com.banquito.cards.transaccion.controller.dto.RespuestaMonitoreoFraudeDTO;
+import com.banquito.cards.transaccion.controller.dto.ProcesamientoFraudeRequestDTO;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -10,5 +10,5 @@ import org.springframework.web.bind.annotation.RequestBody;
 public interface MonitoreoFraudeClient {
 
     @PostMapping("/transacciones/monitoreo-fraude/procesar")
-    RespuestaMonitoreoFraude procesarTransaccionFraude(@RequestBody ProcesamientoFraudeRequest request);
+    RespuestaMonitoreoFraudeDTO procesarTransaccionFraude(@RequestBody ProcesamientoFraudeRequestDTO request);
 } 

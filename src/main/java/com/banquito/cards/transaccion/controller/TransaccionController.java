@@ -1,11 +1,13 @@
 package com.banquito.cards.transaccion.controller;
 
-import com.banquito.cards.transaccion.model.Transaccion;
 import com.banquito.cards.transaccion.model.HistorialEstadoTransaccion;
 import com.banquito.cards.transaccion.repository.HistorialEstadoTransaccionRepository;
 import com.banquito.cards.transaccion.service.TransaccionService;
 import com.banquito.cards.transaccion.controller.dto.TransaccionDTO;
+import com.banquito.cards.transaccion.controller.dto.TransaccionResponseDTO;
 import com.banquito.cards.transaccion.controller.mapper.TransaccionMapper;
+import com.banquito.cards.exception.NotFoundException;
+import com.banquito.cards.exception.BusinessException;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -18,18 +20,21 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.CompletableFuture;
 
 @Tag(name = "Transacciones", description = "API para la gestión de transacciones con tarjetas")
 @RestController
-@RequestMapping("/api/v1/transacciones")
+@RequestMapping("/v1/transacciones")
+@CrossOrigin(origins = "*", allowedHeaders = "*")
 public class TransaccionController {
+
+    private static final Logger log = LoggerFactory.getLogger(TransaccionController.class);
+    private static final String ENTITY_NAME = "Transaccion";
 
     private final TransaccionService transaccionService;
     private final HistorialEstadoTransaccionRepository historialRepository;
@@ -51,14 +56,12 @@ public class TransaccionController {
         @ApiResponse(responseCode = "404", description = "Transacción no encontrada")
     })
     @GetMapping("/{id}")
-    public ResponseEntity<?> obtenerTransaccion(@PathVariable Integer id) {
+    public ResponseEntity<TransaccionDTO> obtenerTransaccion(@PathVariable Integer id) {
         try {
             TransaccionDTO transaccion = transaccionService.obtenerTransaccionPorId(id);
             return ResponseEntity.ok(transaccion);
         } catch (RuntimeException e) {
-            Map<String, String> response = new HashMap<>();
-            response.put("error", e.getMessage());
-            return ResponseEntity.status(404).body(response);
+            throw new NotFoundException(id.toString(), ENTITY_NAME);
         }
     }
 
@@ -70,18 +73,15 @@ public class TransaccionController {
         @ApiResponse(responseCode = "404", description = "Transacción no encontrada")
     })
     @PutMapping("/{id}/estado")
-    public ResponseEntity<?> actualizarEstado(
+    public ResponseEntity<TransaccionResponseDTO> actualizarEstado(
             @Parameter(description = "ID de la transacción") @PathVariable Integer id,
             @Parameter(description = "Nuevo estado de la transacción") @RequestParam String nuevoEstado,
             @Parameter(description = "Detalle del cambio de estado") @RequestParam(required = false) String detalle) {
         try {
-            return ResponseEntity.ok(
-                    transaccionService.actualizarEstadoTransaccion(id, nuevoEstado, 
-                        detalle != null ? detalle : "Cambio de estado manual"));
+            transaccionService.actualizarEstadoTransaccion(id, nuevoEstado, detalle != null ? detalle : "Cambio de estado manual");
+            return ResponseEntity.ok(new TransaccionResponseDTO("Estado actualizado exitosamente"));
         } catch (RuntimeException e) {
-            Map<String, String> response = new HashMap<>();
-            response.put("error", e.getMessage());
-            return ResponseEntity.badRequest().body(response);
+            throw new BusinessException(id.toString(), ENTITY_NAME, "actualizar estado");
         }
     }
 
@@ -93,7 +93,7 @@ public class TransaccionController {
         @ApiResponse(responseCode = "400", description = "Error en los parámetros de búsqueda")
     })
     @GetMapping("/buscar-por-estado-fecha")
-    public ResponseEntity<?> buscarPorEstadoYFecha(
+    public ResponseEntity<List<TransaccionDTO>> buscarPorEstadoYFecha(
             @Parameter(description = "Estado de la transacción a buscar") 
             @RequestParam String estado,
             @Parameter(description = "Fecha inicial del rango de búsqueda") 
@@ -104,9 +104,7 @@ public class TransaccionController {
             return ResponseEntity.ok(
                 transaccionService.obtenerTransaccionesPorEstadoYFecha(estado, fechaInicio, fechaFin));
         } catch (RuntimeException e) {
-            Map<String, String> response = new HashMap<>();
-            response.put("error", e.getMessage());
-            return ResponseEntity.badRequest().body(response);
+            throw new BusinessException(estado, ENTITY_NAME, "buscar por estado y fecha");
         }
     }
 
@@ -118,7 +116,7 @@ public class TransaccionController {
         @ApiResponse(responseCode = "400", description = "Error en los parámetros de búsqueda")
     })
     @GetMapping("/buscar-por-banco-monto")
-    public ResponseEntity<?> buscarPorBancoYMonto(
+    public ResponseEntity<List<TransaccionDTO>> buscarPorBancoYMonto(
             @Parameter(description = "Código del banco a buscar") 
             @RequestParam Integer codigoBanco,
             @Parameter(description = "Monto mínimo de la transacción") 
@@ -129,9 +127,7 @@ public class TransaccionController {
             return ResponseEntity.ok(
                 transaccionService.obtenerTransaccionesPorBancoYMonto(codigoBanco, montoMinimo, montoMaximo));
         } catch (RuntimeException e) {
-            Map<String, String> response = new HashMap<>();
-            response.put("error", e.getMessage());
-            return ResponseEntity.badRequest().body(response);
+            throw new BusinessException(codigoBanco.toString(), ENTITY_NAME, "buscar por banco y monto");
         }
     }
 
@@ -142,48 +138,36 @@ public class TransaccionController {
         @ApiResponse(responseCode = "400", description = "Error en la creación o procesamiento de la transacción")
     })
     @PostMapping
-    public ResponseEntity<?> crearTransaccion(@RequestBody TransaccionDTO transaccionDTO) {
+    public ResponseEntity<TransaccionResponseDTO> crearTransaccion(@RequestBody TransaccionDTO transaccionDTO) {
         try {
-            // 1. Guardamos la transacción como pendiente
             transaccionDTO.setEstado("PEN");
             transaccionDTO.setFechaCreacion(LocalDateTime.now());
             TransaccionDTO transaccionGuardada = transaccionService.guardarTransaccion(transaccionDTO);
 
-            // 2. Procesamos con el banco y esperamos su respuesta
             try {
                 transaccionService.procesarConBanco(transaccionGuardada.getCodigo());
                 
-                // 3. Obtenemos el estado final de la transacción y su último historial
                 TransaccionDTO transaccionFinal = transaccionService.obtenerTransaccionPorId(transaccionGuardada.getCodigo());
                 List<HistorialEstadoTransaccion> historiales = historialRepository.findByTransaccionCodigoOrderByFechaEstadoCambioDesc(
                     transaccionFinal.getCodigo());
                 String detalle = !historiales.isEmpty() ? historiales.get(0).getDetalle() : null;
                 
-                Map<String, String> response = new HashMap<>();
-                
                 switch (transaccionFinal.getEstado()) {
                     case "APR":
-                        response.put("mensaje", "Transacción aceptada");
-                        return ResponseEntity.status(201).body(response);
+                        return ResponseEntity.status(201)
+                            .body(new TransaccionResponseDTO("Transacción aceptada", transaccionFinal.getEstado(), transaccionFinal.getMonto()));
                     case "REC":
-                        response.put("mensaje", "Transacción rechazada");
-                        if (detalle != null) {
-                            response.put("detalle", detalle);
-                        }
-                        return ResponseEntity.status(400).body(response);
+                        return ResponseEntity.status(400)
+                            .body(new TransaccionResponseDTO("Transacción rechazada: " + (detalle != null ? detalle : ""), true));
                     default:
-                        response.put("mensaje", "Estado de transacción desconocido");
-                        return ResponseEntity.status(400).body(response);
+                        return ResponseEntity.status(400)
+                            .body(new TransaccionResponseDTO("Estado de transacción desconocido", true));
                 }
             } catch (Exception e) {
-                Map<String, String> response = new HashMap<>();
-                response.put("error", e.getMessage());
-                return ResponseEntity.status(400).body(response);
+                throw new BusinessException(transaccionGuardada.getCodigo().toString(), ENTITY_NAME, "procesar con banco");
             }
         } catch (Exception e) {
-            Map<String, String> response = new HashMap<>();
-            response.put("error", e.getMessage());
-            return ResponseEntity.status(400).body(response);
+            throw new BusinessException("datos de transacción", ENTITY_NAME, "crear transacción");
         }
     }
 
@@ -194,25 +178,35 @@ public class TransaccionController {
         @ApiResponse(responseCode = "400", description = "Error en el procesamiento de la respuesta de fraude")
     })
     @PostMapping("/{codigoUnicoTransaccion}/fraude")
-    public ResponseEntity<Map<String, String>> procesarRespuestaFraude(
+    public ResponseEntity<TransaccionResponseDTO> procesarRespuestaFraude(
             @Parameter(description = "Código único de la transacción") @PathVariable String codigoUnicoTransaccion,
             @Parameter(description = "Decisión del sistema de fraude (APROBAR/RECHAZAR)") @RequestParam String decision) {
-        Map<String, String> response = new HashMap<>();
-        TransaccionDTO result = transaccionService.procesarRespuestaFraude(codigoUnicoTransaccion, decision);
-        String mensaje;
-        
-        switch (result.getEstado()) {
-            case "APR":
-                mensaje = "Transacción aceptada";
-                break;
-            case "REC":
-                mensaje = "Transacción rechazada";
-                break;
-            default:
-                mensaje = "Estado de transacción desconocido";
+        try {
+            TransaccionDTO result = transaccionService.procesarRespuestaFraude(codigoUnicoTransaccion, decision);
+            String mensaje;
+            
+            switch (result.getEstado()) {
+                case "APR":
+                    mensaje = "Transacción aceptada";
+                    return ResponseEntity.ok(new TransaccionResponseDTO(mensaje, result.getEstado(), result.getMonto()));
+                case "REC":
+                    mensaje = "Transacción rechazada";
+                    return ResponseEntity.ok(new TransaccionResponseDTO(mensaje, true));
+                default:
+                    return ResponseEntity.ok(new TransaccionResponseDTO("Estado de transacción desconocido", true));
+            }
+        } catch (RuntimeException e) {
+            throw new BusinessException(codigoUnicoTransaccion, ENTITY_NAME, "procesar respuesta fraude");
         }
-        
-        response.put("mensaje", mensaje);
-        return ResponseEntity.ok(response);
+    }
+
+    @ExceptionHandler(NotFoundException.class)
+    public ResponseEntity<TransaccionResponseDTO> handleNotFoundException(NotFoundException e) {
+        return ResponseEntity.status(404).body(new TransaccionResponseDTO(e.getMessage(), true));
+    }
+
+    @ExceptionHandler(BusinessException.class)
+    public ResponseEntity<TransaccionResponseDTO> handleBusinessException(BusinessException e) {
+        return ResponseEntity.status(400).body(new TransaccionResponseDTO(e.getMessage(), true));
     }
 }
