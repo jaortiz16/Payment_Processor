@@ -7,7 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 
-@FeignClient(name = "tarjetaConsumoService", url = "https://0dc4-2803-6320-2a-33f0-fcd4-9969-608e-ee14.ngrok-free.app")
+@FeignClient(name = "tarjetaConsumoService", url = "http://3.129.23.35/")
 public interface TarjetaConsumoServiceClient {
 
     @PostMapping("/v1/transacciones")
