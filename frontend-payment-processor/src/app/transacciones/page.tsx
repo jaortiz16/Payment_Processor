@@ -139,17 +139,22 @@ export default function TransactionsPage() {
           ) : (
             transactions.map((transaction) => (
               <TableRow key={transaction.codHistorialEstado}>
-                <TableCell>{transaction.codTransaccion}</TableCell>
+                <TableCell>{transaction.codigoTransaccion}</TableCell>
                 <TableCell>
-                  {transaction.transaccion?.banco?.nombreComercial || '-'}
+                  {transaction.transaccion?.banco?.nombreComercial || 
+                   transaction.transaccion?.banco?.razonSocial || '-'}
                 </TableCell>
                 <TableCell>
-                  {transaction.transaccion?.monto ? formatCurrency(transaction.transaccion.monto) : '-'}
+                  {transaction.transaccion?.monto ? 
+                    formatCurrency(transaction.transaccion.monto) : '-'}
                 </TableCell>
                 <TableCell>{getEstadoBadge(transaction.estado)}</TableCell>
-                <TableCell>{transaction.transaccion?.modalidad || '-'}</TableCell>
                 <TableCell>
-                  {new Date(transaction.fechaEstadoCambio).toLocaleString('es-EC')}
+                  {transaction.transaccion?.modalidad || '-'}
+                </TableCell>
+                <TableCell>
+                  {transaction.fechaEstadoCambio ? 
+                    new Date(transaction.fechaEstadoCambio).toLocaleString('es-EC') : '-'}
                 </TableCell>
                 <TableCell>{transaction.detalle || '-'}</TableCell>
               </TableRow>

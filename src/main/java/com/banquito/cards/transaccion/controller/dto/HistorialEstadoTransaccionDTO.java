@@ -24,4 +24,6 @@ public class HistorialEstadoTransaccionDTO {
 
     @Size(max = 200, message = "El detalle no puede exceder los 200 caracteres")
     private String detalle;
+
+    private TransaccionDTO transaccion;
 } 
