@@ -2,13 +2,19 @@ package com.banquito.cards.comision.model;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
+import lombok.EqualsAndHashCode;
 import java.io.Serializable;
 import java.time.LocalDateTime;
 
-@Data
+@Getter
+@Setter
+@ToString
 @NoArgsConstructor
+@EqualsAndHashCode(of = "codigo")
 @Entity
 @Table(name = "BANCO")
 public class Banco implements Serializable {

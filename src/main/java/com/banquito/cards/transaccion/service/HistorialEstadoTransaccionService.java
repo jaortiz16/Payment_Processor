@@ -9,6 +9,8 @@ import com.banquito.cards.transaccion.controller.mapper.HistorialEstadoTransacci
 import com.banquito.cards.exception.BusinessException;
 import com.banquito.cards.exception.NotFoundException;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -48,7 +50,7 @@ public class HistorialEstadoTransaccionService {
             fechaFin = ahora.toLocalDate().atTime(23, 59, 59);
         }
         if (fechaInicio.isAfter(fechaFin)) {
-            throw new BusinessException("La fecha de inicio no puede ser posterior a la fecha fin");
+            throw new BusinessException("fechas", ENTITY_NAME, "validar fechas");
         }
 
         List<HistorialEstadoTransaccion> historial;
@@ -89,7 +91,7 @@ public class HistorialEstadoTransaccionService {
     @Transactional(readOnly = true)
     public List<HistorialEstadoTransaccionDTO> obtenerHistorialPorFecha(LocalDateTime fecha) {
         if (fecha == null) {
-            throw new BusinessException("La fecha es requerida");
+            throw new BusinessException("fecha", ENTITY_NAME, "validar fecha");
         }
 
         LocalDateTime inicioDia = fecha.toLocalDate().atStartOfDay();
@@ -101,21 +103,77 @@ public class HistorialEstadoTransaccionService {
             .collect(Collectors.toList());
     }
 
-    @Transactional
-    public HistorialEstadoTransaccionDTO registrarCambioEstado(
-            Integer transaccionId, String nuevoEstado, String detalle) {
-        
-        Transaccion transaccion = transaccionRepository.findById(transaccionId)
-                .orElseThrow(() -> new NotFoundException(transaccionId.toString(), "Transaccion"));
+    @Transactional(readOnly = true)
+    public Page<HistorialEstadoTransaccionDTO> listarHistorial(
+            String estado, LocalDateTime fechaInicio, LocalDateTime fechaFin, Pageable pageable) {
+        log.debug("Listando historial con filtros: estado={}, fechaInicio={}, fechaFin={}", 
+            estado, fechaInicio, fechaFin);
+            
+        if (fechaInicio == null || fechaFin == null) {
+            log.debug("Fechas no proporcionadas, usando día actual");
+            LocalDateTime ahora = LocalDateTime.now();
+            fechaInicio = ahora.toLocalDate().atStartOfDay();
+            fechaFin = ahora.toLocalDate().atTime(23, 59, 59);
+        }
 
-        validarTransicionEstado(transaccion.getEstado(), nuevoEstado);
+        if (fechaInicio.isAfter(fechaFin)) {
+            throw new BusinessException("fechas", ENTITY_NAME, "validar fechas");
+        }
+
+        Page<HistorialEstadoTransaccion> historial;
+        if (estado != null && !estado.trim().isEmpty()) {
+            log.debug("Buscando por estado: {}", estado);
+            historial = historialRepository.findByEstadoAndFechaEstadoCambioBetween(
+                estado, fechaInicio, fechaFin, pageable);
+        } else {
+            log.debug("Buscando todas las transacciones en el rango de fechas");
+            historial = historialRepository.findByFechaEstadoCambioBetween(
+                fechaInicio, fechaFin, pageable);
+        }
+
+        log.debug("Registros encontrados: {}", historial.getTotalElements());
+        return historial.map(historialMapper::toDTO);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<HistorialEstadoTransaccionDTO> obtenerHistorialPorTransaccion(
+            Integer codigoTransaccion, String estado, Pageable pageable) {
+        log.info("Obteniendo historial para transacción {} con estado {}", codigoTransaccion, estado);
+        Transaccion transaccion = transaccionRepository.findById(codigoTransaccion)
+                .orElseThrow(() -> new NotFoundException(codigoTransaccion.toString(), "Transaccion"));
+
+        Page<HistorialEstadoTransaccion> historial;
+        if (estado != null && !estado.isEmpty()) {
+            historial = historialRepository.findByTransaccionAndEstado(transaccion, estado, pageable);
+        } else {
+            historial = historialRepository.findByTransaccion(transaccion, pageable);
+        }
+
+        return historial.map(historialMapper::toDTO);
+    }
+
+    @Transactional(readOnly = true)
+    public HistorialEstadoTransaccionDTO obtenerEstadoPorId(Integer id) {
+        log.info("Obteniendo estado por ID: {}", id);
+        return historialRepository.findById(id)
+                .map(historialMapper::toDTO)
+                .orElseThrow(() -> new NotFoundException(id.toString(), "HistorialEstadoTransaccion"));
+    }
+
+    @Transactional
+    public HistorialEstadoTransaccionDTO registrarCambioEstado(Integer codigoTransaccion, String estado, String detalle) {
+        log.info("Registrando cambio de estado {} para transacción {}", estado, codigoTransaccion);
+        Transaccion transaccion = transaccionRepository.findById(codigoTransaccion)
+                .orElseThrow(() -> new NotFoundException(codigoTransaccion.toString(), "Transaccion"));
+
+        validarTransicionEstado(transaccion.getEstado(), estado);
 
         HistorialEstadoTransaccion historial = new HistorialEstadoTransaccion();
         historial.setTransaccion(transaccion);
-        historial.setEstado(nuevoEstado);
+        historial.setEstado(estado);
         historial.setFechaEstadoCambio(LocalDateTime.now());
         historial.setDetalle(detalle);
-        transaccion.setEstado(nuevoEstado);
+        transaccion.setEstado(estado);
         transaccion.setDetalle(detalle);
         transaccionRepository.save(transaccion);
 
@@ -124,18 +182,17 @@ public class HistorialEstadoTransaccionService {
 
     private void validarTransicionEstado(String estadoActual, String nuevoEstado) {
         if ("REC".equals(estadoActual)) {
-            throw new BusinessException("No se pueden realizar cambios en una transacción rechazada");
+            throw new BusinessException(estadoActual, ENTITY_NAME, "validar transición estado");
         }
         
         if ("APR".equals(estadoActual) && !"REV".equals(nuevoEstado)) {
-            throw new BusinessException("Una transacción aprobada solo puede ser reversada");
+            throw new BusinessException(estadoActual, ENTITY_NAME, "validar transición estado");
         }
         
         if ("PEN".equals(estadoActual) && 
             !"APR".equals(nuevoEstado) && 
             !"REC".equals(nuevoEstado)) {
-            throw new BusinessException(
-                "Una transacción pendiente solo puede ser aprobada o rechazada");
+            throw new BusinessException(estadoActual, ENTITY_NAME, "validar transición estado");
         }
     }
 }

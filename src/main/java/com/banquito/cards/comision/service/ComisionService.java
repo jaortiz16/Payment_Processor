@@ -5,7 +5,9 @@ import com.banquito.cards.comision.model.ComisionSegmento;
 import com.banquito.cards.comision.repository.ComisionRepository;
 import com.banquito.cards.comision.repository.ComisionSegmentoRepository;
 import com.banquito.cards.exception.NotFoundException;
+import com.banquito.cards.exception.BusinessException;
 
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,9 +30,16 @@ public class ComisionService {
     }
 
     @Transactional(readOnly = true)
+    public List<Comision> obtenerTodasLasComisiones(String sortBy, String sortDir) {
+        Sort.Direction direction = Sort.Direction.fromString(sortDir.toUpperCase());
+        Sort sort = Sort.by(direction, sortBy);
+        return this.comisionRepository.findAll(sort);
+    }
+
+    @Transactional(readOnly = true)
     public List<Comision> obtenerComisionesPorTipo(String tipo) {
         if (!List.of(Comision.TIPO_PORCENTAJE, Comision.TIPO_FIJO).contains(tipo)) {
-            throw new RuntimeException("Tipo de comisión inválido. Use: POR o FIJ");
+            throw new BusinessException(tipo, ENTITY_NAME, "validar - tipo inválido");
         }
         return this.comisionRepository.findByTipo(tipo);
     }
@@ -38,10 +47,10 @@ public class ComisionService {
     @Transactional(readOnly = true)
     public List<Comision> obtenerComisionesPorMontoBaseEntre(BigDecimal montoMinimo, BigDecimal montoMaximo) {
         if (montoMinimo == null || montoMaximo == null) {
-            throw new RuntimeException("Los montos mínimo y máximo son requeridos");
+            throw new BusinessException("montos mínimo y máximo", ENTITY_NAME, "validar - campos requeridos");
         }
         if (montoMinimo.compareTo(montoMaximo) > 0) {
-            throw new RuntimeException("El monto mínimo no puede ser mayor al monto máximo");
+            throw new BusinessException(montoMinimo + " > " + montoMaximo, ENTITY_NAME, "validar - monto mínimo mayor al máximo");
         }
         return this.comisionRepository.findByMontoBaseBetween(montoMinimo, montoMaximo);
     }
@@ -55,7 +64,7 @@ public class ComisionService {
     public Comision crearComision(Comision comision) {
         validarComision(comision);
         if (comisionRepository.existsByTipoAndMontoBase(comision.getTipo(), comision.getMontoBase())) {
-            throw new RuntimeException("Ya existe una comisión con el mismo tipo y monto base");
+            throw new BusinessException(comision.getTipo() + "-" + comision.getMontoBase(), ENTITY_NAME, "crear - comisión duplicada");
         }
         comision.setFechaCreacion(LocalDateTime.now());
         return this.comisionRepository.save(comision);
@@ -67,7 +76,7 @@ public class ComisionService {
         
         if (!comisionExistente.getTipo().equals(comision.getTipo()) && 
             comisionRepository.existsByTipoAndMontoBase(comision.getTipo(), comision.getMontoBase())) {
-            throw new RuntimeException("Ya existe una comisión con el mismo tipo y monto base");
+            throw new BusinessException(comision.getTipo() + "-" + comision.getMontoBase(), ENTITY_NAME, "actualizar - comisión duplicada");
         }
         
         comisionExistente.setTipo(comision.getTipo());
@@ -83,7 +92,7 @@ public class ComisionService {
         validarSegmento(comision, segmento);
         
         if (comisionSegmentoRepository.existsByComisionAndTransaccionesHasta(comision, segmento.getTransaccionesHasta())) {
-            throw new RuntimeException("Ya existe un segmento con el mismo límite de transacciones");
+            throw new BusinessException(segmento.getTransaccionesHasta().toString(), "ComisionSegmento", "crear - límite de transacciones duplicado");
         }
         
         segmento.setComision(comision);
@@ -102,26 +111,26 @@ public class ComisionService {
 
     private void validarComision(Comision comision) {
         if (comision.getMontoBase() == null || comision.getMontoBase().compareTo(BigDecimal.ZERO) < 0) {
-            throw new RuntimeException("El monto base debe ser mayor o igual a cero");
+            throw new BusinessException("monto base", ENTITY_NAME, "validar - debe ser mayor o igual a cero");
         }
         if (comision.getTransaccionesBase() == null || comision.getTransaccionesBase() < 0) {
-            throw new RuntimeException("El número de transacciones base debe ser mayor o igual a cero");
+            throw new BusinessException("transacciones base", ENTITY_NAME, "validar - debe ser mayor o igual a cero");
         }
         if (!List.of(Comision.TIPO_PORCENTAJE, Comision.TIPO_FIJO).contains(comision.getTipo())) {
-            throw new RuntimeException("Tipo de comisión inválido. Use: POR o FIJ");
+            throw new BusinessException(comision.getTipo(), ENTITY_NAME, "validar - tipo inválido");
         }
     }
 
     private void validarSegmento(Comision comision, ComisionSegmento segmento) {
         if (!comision.getManejaSegmentos()) {
-            throw new RuntimeException("Esta comisión no maneja segmentos");
+            throw new BusinessException(comision.getCodigo().toString(), ENTITY_NAME, "validar - no maneja segmentos");
         }
         if (segmento.getMonto() == null || segmento.getMonto().compareTo(BigDecimal.ZERO) < 0) {
-            throw new RuntimeException("El monto del segmento debe ser mayor o igual a cero");
+            throw new BusinessException("monto", "ComisionSegmento", "validar - debe ser mayor o igual a cero");
         }
         if (segmento.getTransaccionesHasta() == null || 
             segmento.getTransaccionesHasta().compareTo(BigDecimal.ZERO) <= 0) {
-            throw new RuntimeException("El límite de transacciones debe ser mayor a cero");
+            throw new BusinessException("transacciones hasta", "ComisionSegmento", "validar - debe ser mayor a cero");
         }
     }
 

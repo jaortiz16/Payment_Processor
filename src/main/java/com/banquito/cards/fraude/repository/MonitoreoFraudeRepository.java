@@ -1,6 +1,8 @@
 package com.banquito.cards.fraude.repository;
 
 import com.banquito.cards.fraude.model.MonitoreoFraude;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -37,4 +39,10 @@ public interface MonitoreoFraudeRepository extends JpaRepository<MonitoreoFraude
         String ubicacionGeografica, LocalDateTime fechaInicio, LocalDateTime fechaFin);
     
     Optional<MonitoreoFraude> findFirstByCodigoUnicoTransaccionOrderByFechaDeteccionDesc(String codigoUnicoTransaccion);
+
+    Page<MonitoreoFraude> findByEstadoAndNivelRiesgo(String estado, String nivelRiesgo, Pageable pageable);
+    
+    Page<MonitoreoFraude> findByEstado(String estado, Pageable pageable);
+    
+    Page<MonitoreoFraude> findByNivelRiesgo(String nivelRiesgo, Pageable pageable);
 }

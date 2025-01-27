@@ -2,13 +2,19 @@ package com.banquito.cards.transaccion.model;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
+import lombok.EqualsAndHashCode;
 import java.io.Serializable;
 import java.time.LocalDateTime;
 
-@Data
+@Getter
+@Setter
+@ToString
 @NoArgsConstructor
+@EqualsAndHashCode(of = "codHistorialEstado")
 @Entity
 @Table(name = "HISTORIAL_ESTADO_TRANSACCION")
 public class HistorialEstadoTransaccion implements Serializable {
@@ -43,4 +49,8 @@ public class HistorialEstadoTransaccion implements Serializable {
     @Size(max = 200)
     @Column(name = "DETALLE", length = 200)
     private String detalle;
+
+    public HistorialEstadoTransaccion(Integer codHistorialEstado) {
+        this.codHistorialEstado = codHistorialEstado;
+    }
 }

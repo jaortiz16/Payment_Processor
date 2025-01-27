@@ -27,12 +27,10 @@ public class BancoDTO {
     @Size(min = 5, max = 100, message = "El nombre comercial debe tener entre 5 y 100 caracteres")
     private String nombreComercial;
 
-    @NotNull(message = "La fecha de creación es requerida")
     @PastOrPresent(message = "La fecha de creación no puede ser futura")
     private LocalDateTime fechaCreacion;
 
     private Integer codComision;
-    private ComisionDTO comision;
 
     @NotBlank(message = "El estado es requerido")
     @Pattern(regexp = "ACT|INA", message = "El estado debe ser ACT o INA")
@@ -40,19 +38,4 @@ public class BancoDTO {
 
     @PastOrPresent(message = "La fecha de inactivación no puede ser futura")
     private LocalDateTime fechaInactivacion;
-
-    @Data
-    @NoArgsConstructor
-    public static class ComisionDTO {
-        private Integer codigo;
-        
-        @NotBlank(message = "El nombre es requerido")
-        @Size(min = 3, max = 50, message = "El nombre debe tener entre 3 y 50 caracteres")
-        private String nombre;
-        
-        @NotNull(message = "El porcentaje es requerido")
-        @DecimalMin(value = "0.0", message = "El porcentaje no puede ser negativo")
-        @DecimalMax(value = "100.0", message = "El porcentaje no puede ser mayor a 100")
-        private Double porcentaje;
-    }
 } 
