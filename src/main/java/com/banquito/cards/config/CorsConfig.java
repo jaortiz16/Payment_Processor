@@ -14,7 +14,7 @@ public class CorsConfig {
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         CorsConfiguration config = new CorsConfiguration();
         
-        config.addAllowedOrigin("http://localhost:3000");
+        config.addAllowedOrigin("https://payment-processor-nu.vercel.app/dashboard");
         
         config.addAllowedMethod("*");
         
