@@ -1,21 +1,20 @@
 package com.banquito.cards.transaccion.controller.mapper;
 
-import com.banquito.cards.transaccion.controller.dto.HistorialEstadoTransaccionDTO;
 import com.banquito.cards.transaccion.model.HistorialEstadoTransaccion;
-import org.mapstruct.Mapper;
-import org.mapstruct.Mapping;
-import org.mapstruct.MappingConstants;
-import org.mapstruct.ReportingPolicy;
+import com.banquito.cards.transaccion.controller.dto.HistorialEstadoTransaccionDTO;
+import org.mapstruct.*;
 
 @Mapper(
-        componentModel = MappingConstants.ComponentModel.SPRING,
-        unmappedTargetPolicy = ReportingPolicy.IGNORE
+    componentModel = MappingConstants.ComponentModel.SPRING,
+    unmappedTargetPolicy = ReportingPolicy.IGNORE,
+    uses = {TransaccionMapper.class}
 )
 public interface HistorialEstadoTransaccionMapper {
     
     @Mapping(target = "codigoTransaccion", source = "transaccion.codigo")
+    @Mapping(target = "transaccion", source = "transaccion")
     HistorialEstadoTransaccionDTO toDTO(HistorialEstadoTransaccion model);
     
-    @Mapping(target = "transaccion.codigo", source = "codigoTransaccion")
+    @InheritInverseConfiguration
     HistorialEstadoTransaccion toModel(HistorialEstadoTransaccionDTO dto);
 } 

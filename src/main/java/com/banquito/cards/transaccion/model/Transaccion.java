@@ -9,6 +9,7 @@ import lombok.Setter;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
 import lombok.EqualsAndHashCode;
+import org.hibernate.annotations.Check;
 import java.io.Serializable;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -20,6 +21,7 @@ import java.time.LocalDateTime;
 @EqualsAndHashCode(of = "codigo")
 @Entity
 @Table(name = "TRANSACCION")
+@Check(constraints = "(modalidad = 'REC' AND cuotas >= 1 AND cuotas <= 48) OR (modalidad = 'SIM' AND cuotas = 0)")
 public class Transaccion implements Serializable {
 
     public static final String MODALIDAD_SIMPLE = "SIM";
@@ -137,7 +139,7 @@ public class Transaccion implements Serializable {
     @Column(name = "NUMERO_CUENTA", length = 20)
     private String numeroCuenta;
 
-    @Min(1)
+    @Min(0)
     @Max(48)
     @Column(name = "CUOTAS")
     private Integer cuotas;

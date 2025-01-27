@@ -3,10 +3,11 @@ import { create } from 'zustand';
 interface Banco {
   codigo: number;
   nombreComercial: string;
+  razonSocial: string;
 }
 
 interface Transaccion {
-  codTransaccion: number;
+  codigo: number;
   monto: number;
   modalidad: string;
   codigoMoneda: string;
@@ -18,7 +19,7 @@ interface Transaccion {
 
 interface Transaction {
   codHistorialEstado: number;
-  codTransaccion: string;
+  codigoTransaccion: number;
   estado: string;
   fechaEstadoCambio: string;
   detalle: string;
@@ -52,7 +53,7 @@ export const useTransactionStore = create<TransactionStore>((set) => ({
       if (params.fechaFin) queryParams.append('fechaFin', params.fechaFin);
       if (params.bancoNombre) queryParams.append('bancoNombre', params.bancoNombre);
 
-      const url = `${API_URL}/api/v1/historial-estados/transacciones?${queryParams}`;
+      const url = `${API_URL}/v1/historial-estados?${queryParams}`;
       console.log('Fetching transactions from:', url);
 
       const response = await fetch(url, {
@@ -61,12 +62,9 @@ export const useTransactionStore = create<TransactionStore>((set) => ({
           'Content-Type': 'application/json',
           'Accept': 'application/json'
         },
-        credentials: 'include',
         mode: 'cors'
       });
 
-      console.log('Response status:', response.status);
-      
       if (!response.ok) {
         const errorData = await response.text();
         console.error('Error response:', errorData);
@@ -76,7 +74,30 @@ export const useTransactionStore = create<TransactionStore>((set) => ({
       const data = await response.json();
       console.log('Response data:', data);
 
-      set({ transactions: data || [], isLoading: false });
+      // Transformar y validar los datos
+      const transactions = (data.content || []).map((transaction: any) => ({
+        codHistorialEstado: transaction.codHistorialEstado,
+        codigoTransaccion: transaction.codigoTransaccion,
+        estado: transaction.estado,
+        fechaEstadoCambio: transaction.fechaEstadoCambio,
+        detalle: transaction.detalle,
+        transaccion: transaction.transaccion ? {
+          codigo: transaction.transaccion.codigo,
+          monto: transaction.transaccion.monto || 0,
+          modalidad: transaction.transaccion.modalidad || '-',
+          codigoMoneda: transaction.transaccion.codigoMoneda || 'USD',
+          marca: transaction.transaccion.marca || '-',
+          estado: transaction.transaccion.estado || '-',
+          detalle: transaction.transaccion.detalle || '-',
+          banco: transaction.transaccion.banco ? {
+            codigo: transaction.transaccion.banco.codigo,
+            nombreComercial: transaction.transaccion.banco.nombreComercial || '-',
+            razonSocial: transaction.transaccion.banco.razonSocial || '-'
+          } : null
+        } : null
+      }));
+
+      set({ transactions, isLoading: false });
     } catch (error) {
       console.error('Error fetching transactions:', error);
       set({ 

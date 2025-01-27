@@ -105,12 +105,10 @@ public class TransaccionService {
     public TransaccionDTO guardarTransaccion(TransaccionDTO transaccionDTO) {
         log.debug("Guardando transacción: {}", transaccionDTO);
         
-        // 1. Validar código único
         if (transaccionRepository.existsByCodigoUnicoTransaccion(transaccionDTO.getCodigoUnicoTransaccion())) {
             throw new BusinessException(transaccionDTO.getCodigoUnicoTransaccion(), ENTITY_NAME, "validar código único");
         }
 
-        // 2. Obtener y validar el banco y su comisión
         Banco banco = bancoRepository.findById(transaccionDTO.getCodigoBanco())
                 .orElseThrow(() -> new NotFoundException(transaccionDTO.getCodigoBanco().toString(), ENTITY_NAME));
         
@@ -118,24 +116,53 @@ public class TransaccionService {
             throw new BusinessException(transaccionDTO.getCodigoBanco().toString(), ENTITY_NAME, "validar comisión");
         }
 
-        // 3. Crear y configurar la transacción
+        if (MODALIDAD_SIMPLE.equals(transaccionDTO.getModalidad())) {
+            log.debug("Configurando transacción simple en DTO");
+            transaccionDTO.setCuotas(0);
+            transaccionDTO.setInteresDiferido(false);
+        }
+
         Transaccion transaccion = transaccionMapper.toModel(transaccionDTO);
         transaccion.setBanco(banco);
         transaccion.setComision(banco.getComision());
+        transaccion.setFechaCreacion(LocalDateTime.now());
         
-        // 4. Asignar comisión según modalidad
-        if (MODALIDAD_RECURRENTE.equals(transaccion.getModalidad())) {
-            asignarComisionRecurrente(transaccion);
-        } else {
+        if (MODALIDAD_SIMPLE.equals(transaccionDTO.getModalidad())) {
+            log.debug("Configurando transacción simple");
+            transaccion.setModalidad(MODALIDAD_SIMPLE);
+            transaccion.setCuotas(0);
+            transaccion.setInteresDiferido(false);
+            transaccion.setFechaEjecucionRecurrencia(null);
+            transaccion.setFechaFinRecurrencia(null);
             asignarComisionSimple(transaccion);
+        } else if (MODALIDAD_RECURRENTE.equals(transaccionDTO.getModalidad())) {
+            log.debug("Configurando transacción recurrente");
+            transaccion.setModalidad(MODALIDAD_RECURRENTE);
+            if (transaccion.getCuotas() == null || transaccion.getCuotas() < 1) {
+                throw new BusinessException("cuotas", ENTITY_NAME, "validar cuotas para modalidad recurrente");
+            }
+            asignarComisionRecurrente(transaccion);
         }
 
-        // 5. Guardar y registrar estado
-        Transaccion transaccionGuardada = transaccionRepository.save(transaccion);
-        registrarCambioEstado(transaccionGuardada, transaccion.getEstado(), 
-            "Transacción registrada - Esperando respuesta del banco");
-        
-        return transaccionMapper.toDTO(transaccionGuardada);
+        try {
+            validarTransaccion(transaccion);
+            log.debug("Transacción validada correctamente. Modalidad: {}, Cuotas: {}", transaccion.getModalidad(), transaccion.getCuotas());
+        } catch (BusinessException e) {
+            log.error("Error en validación: {}", e.getMessage());
+            throw e;
+        }
+
+        try {
+            log.debug("Guardando transacción en BD: modalidad={}, cuotas={}", transaccion.getModalidad(), transaccion.getCuotas());
+            Transaccion transaccionGuardada = transaccionRepository.save(transaccion);
+            registrarCambioEstado(transaccionGuardada, transaccion.getEstado(), 
+                "Transacción registrada - Esperando respuesta del banco");
+            
+            return transaccionMapper.toDTO(transaccionGuardada);
+        } catch (Exception e) {
+            log.error("Error al guardar transacción: {}", e.getMessage());
+            throw new BusinessException("Error al guardar transacción: " + e.getMessage(), ENTITY_NAME, "guardar transacción");
+        }
     }
 
     @Transactional
@@ -165,12 +192,23 @@ public class TransaccionService {
     }
 
     private void asignarComisionSimple(Transaccion transaccion) {
-        BigDecimal comision = comisionService.calcularComision(
-            transaccion.getComision().getCodigo(),
-            1,
-            transaccion.getMonto()
-        );
-        transaccion.setGtwComision(comision.toString());
+        if (transaccion.getGtwComision() == null || transaccion.getGtwComision().trim().isEmpty()) {
+            BigDecimal comision = comisionService.calcularComision(
+                transaccion.getComision().getCodigo(),
+                1,
+                transaccion.getMonto()
+            );
+            transaccion.setGtwComision(comision.toString());
+        }
+        
+        if (transaccion.getCuotas() == null) {
+            transaccion.setCuotas(0);
+        }
+        if (transaccion.getInteresDiferido() == null) {
+            transaccion.setInteresDiferido(false);
+        }
+        transaccion.setFechaEjecucionRecurrencia(null);
+        transaccion.setFechaFinRecurrencia(null);
     }
 
     private void asignarComisionRecurrente(Transaccion transaccion) {
@@ -178,21 +216,21 @@ public class TransaccionService {
             throw new BusinessException(transaccion.getCuotas().toString(), ENTITY_NAME, "validar cuotas");
         }
 
-        // Aseguramos que la fecha de ejecución sea futura
         LocalDateTime fechaEjecucion = LocalDateTime.now().plusDays(1);
         LocalDateTime fechaFin = fechaEjecucion.plusMonths(transaccion.getCuotas());
 
         transaccion.setFechaEjecucionRecurrencia(fechaEjecucion);
         transaccion.setFechaFinRecurrencia(fechaFin);
 
-        BigDecimal comision = comisionService.calcularComision(
-            transaccion.getComision().getCodigo(),
-            transaccion.getCuotas(),
-            transaccion.getMonto()
-        );
-        transaccion.setGtwComision(comision.toString());
+        if (transaccion.getGtwComision() == null || transaccion.getGtwComision().trim().isEmpty()) {
+            BigDecimal comision = comisionService.calcularComision(
+                transaccion.getComision().getCodigo(),
+                transaccion.getCuotas(),
+                transaccion.getMonto()
+            );
+            transaccion.setGtwComision(comision.toString());
+        }
         
-        // Aseguramos que el código único de transacción tenga el largo correcto
         if (transaccion.getCodigoUnicoTransaccion() != null) {
             String codigo = transaccion.getCodigoUnicoTransaccion();
             while (codigo.length() < 32) {
@@ -233,6 +271,13 @@ public class TransaccionService {
              !MODALIDAD_RECURRENTE.equals(transaccion.getModalidad()))) {
             throw new BusinessException("modalidad", ENTITY_NAME, "validar modalidad");
         }
+
+        if (MODALIDAD_RECURRENTE.equals(transaccion.getModalidad())) {
+            if (transaccion.getCuotas() == null || transaccion.getCuotas() <= 0) {
+                throw new BusinessException("cuotas", ENTITY_NAME, "validar cuotas para modalidad recurrente");
+            }
+        }
+
         if (transaccion.getPais() == null || transaccion.getPais().trim().length() != 2) {
             throw new BusinessException("país", ENTITY_NAME, "validar país");
         }
@@ -264,7 +309,6 @@ public class TransaccionService {
 
     private void registrarCambioEstado(Transaccion transaccion, String estado, String detalle) {
         try {
-            // Primero guardamos la transacción para asegurar que tenga un ID
             transaccion = transaccionRepository.save(transaccion);
             
             HistorialEstadoTransaccion historial = new HistorialEstadoTransaccion();
@@ -311,7 +355,7 @@ public class TransaccionService {
 
             ConsumoTarjetaRequestDTO.DetalleComision gtw = new ConsumoTarjetaRequestDTO.DetalleComision();
             gtw.setReferencia("REF-" + transaccion.getCodigoUnicoTransaccion());
-            gtw.setComision(new BigDecimal("0.01"));
+            gtw.setComision(new BigDecimal(transaccion.getGtwComision()));
             gtw.setNumeroCuenta(transaccion.getGtwCuenta());
 
             ConsumoTarjetaRequestDTO.DetalleComision processor = new ConsumoTarjetaRequestDTO.DetalleComision();
@@ -323,7 +367,7 @@ public class TransaccionService {
             detalle.setGtw(gtw);
             detalle.setProcessor(processor);
 
-            return ConsumoTarjetaRequestDTO.builder()
+            ConsumoTarjetaRequestDTO request = ConsumoTarjetaRequestDTO.builder()
                     .numeroTarjeta(transaccion.getNumeroTarjeta())
                     .cvv(transaccion.getCvv())
                     .fechaCaducidad(transaccion.getFechaExpiracionTarjeta())
@@ -332,10 +376,18 @@ public class TransaccionService {
                     .beneficiario(transaccion.getBeneficiario() != null ? 
                         transaccion.getBeneficiario() : "Beneficiario por defecto")
                     .numeroCuenta(transaccion.getNumeroCuenta())
-                    .esDiferido(transaccion.getInteresDiferido() != null ? transaccion.getInteresDiferido() : false)
-                    .cuotas(transaccion.getCuotas() != null ? transaccion.getCuotas() : 0)
                     .detalle(detalle)
                     .build();
+
+            if (MODALIDAD_SIMPLE.equals(transaccion.getModalidad())) {
+                request.setEsDiferido(false);
+                request.setCuotas(0);
+            } else {
+                request.setEsDiferido(transaccion.getInteresDiferido());
+                request.setCuotas(transaccion.getCuotas());
+            }
+
+            return request;
         } catch (Exception e) {
             throw new BusinessException(e.getMessage(), ENTITY_NAME, "preparar request");
         }

@@ -78,7 +78,7 @@ public class TransaccionDTO {
     @Future(message = "La fecha de fin de recurrencia debe ser futura")
     private LocalDateTime fechaFinRecurrencia;
     
-    @Min(value = 1, message = "El número de cuotas debe ser mayor a 0")
+    @Min(value = 0, message = "El número de cuotas no puede ser negativo")
     @Max(value = 48, message = "El número de cuotas no puede exceder 48")
     private Integer cuotas;
     
