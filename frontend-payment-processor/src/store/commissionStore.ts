@@ -16,6 +16,7 @@ export interface Commission {
   montoBase: number;
   transaccionesBase: number;
   manejaSegmentos: boolean;
+  fechaCreacion: string;
   segmentos?: CommissionSegment[];
 }
 
@@ -25,12 +26,12 @@ interface CommissionState {
   error: string | null;
   fetchCommissionsByType: (tipo: string) => Promise<void>;
   fetchCommissionsByAmount: (montoMinimo: number, montoMaximo: number) => Promise<void>;
-  createCommission: (commission: Omit<Commission, 'codigo'>) => Promise<void>;
+  createCommission: (commission: Omit<Commission, 'codigo' | 'fechaCreacion'>) => Promise<void>;
   updateCommission: (id: number, commission: Partial<Commission>) => Promise<void>;
   addSegment: (commissionId: number, segment: Omit<CommissionSegment, 'pk'>) => Promise<void>;
 }
 
-const API_URL = 'http://localhost:8080/api/v1/comisiones';
+const API_URL = 'http://localhost:8080/v1/comisiones';
 
 export const useCommissionStore = create<CommissionState>((set) => ({
   commissions: [],
@@ -40,12 +41,20 @@ export const useCommissionStore = create<CommissionState>((set) => ({
   fetchCommissionsByType: async (tipo: string) => {
     try {
       set({ isLoading: true, error: null });
-      const response = await axios.get(`${API_URL}/tipo-comision/${tipo}`);
+      const response = await axios.get(API_URL, {
+        params: { tipo },
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        }
+      });
       set({ commissions: response.data, isLoading: false });
     } catch (error) {
+      console.error('Error fetching commissions:', error);
       set({ 
         error: error instanceof Error ? error.message : 'Error al cargar las comisiones', 
-        isLoading: false 
+        isLoading: false,
+        commissions: []
       });
     }
   },
@@ -53,14 +62,20 @@ export const useCommissionStore = create<CommissionState>((set) => ({
   fetchCommissionsByAmount: async (montoMinimo: number, montoMaximo: number) => {
     try {
       set({ isLoading: true, error: null });
-      const response = await axios.get(`${API_URL}/monto-comision`, {
-        params: { montoMinimo, montoMaximo }
+      const response = await axios.get(API_URL, {
+        params: { montoMinimo, montoMaximo },
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        }
       });
       set({ commissions: response.data, isLoading: false });
     } catch (error) {
+      console.error('Error fetching commissions by amount:', error);
       set({ 
         error: error instanceof Error ? error.message : 'Error al buscar comisiones', 
-        isLoading: false 
+        isLoading: false,
+        commissions: []
       });
     }
   },
@@ -68,39 +83,58 @@ export const useCommissionStore = create<CommissionState>((set) => ({
   createCommission: async (commission) => {
     try {
       set({ isLoading: true, error: null });
-      const response = await axios.post(`${API_URL}/crear-comision`, commission);
+      const response = await axios.post(API_URL, commission, {
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        }
+      });
       set((state) => ({ 
         commissions: [...state.commissions, response.data],
         isLoading: false 
       }));
     } catch (error) {
+      console.error('Error creating commission:', error);
       set({ 
         error: error instanceof Error ? error.message : 'Error al crear la comisión', 
         isLoading: false 
       });
+      throw error;
     }
   },
 
   updateCommission: async (id, commission) => {
     try {
       set({ isLoading: true, error: null });
-      const response = await axios.put(`${API_URL}/actualizar-comision/${id}`, commission);
+      const response = await axios.put(`${API_URL}/${id}`, commission, {
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        }
+      });
       set((state) => ({
         commissions: state.commissions.map((c) => c.codigo === id ? response.data : c),
         isLoading: false
       }));
     } catch (error) {
+      console.error('Error updating commission:', error);
       set({ 
         error: error instanceof Error ? error.message : 'Error al actualizar la comisión', 
         isLoading: false 
       });
+      throw error;
     }
   },
 
   addSegment: async (commissionId, segment) => {
     try {
       set({ isLoading: true, error: null });
-      const response = await axios.post(`${API_URL}/${commissionId}/segmentos`, segment);
+      const response = await axios.post(`${API_URL}/${commissionId}/segmentos`, segment, {
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        }
+      });
       set((state) => ({
         commissions: state.commissions.map((c) => {
           if (c.codigo === commissionId) {
@@ -114,10 +148,12 @@ export const useCommissionStore = create<CommissionState>((set) => ({
         isLoading: false
       }));
     } catch (error) {
+      console.error('Error adding segment:', error);
       set({ 
         error: error instanceof Error ? error.message : 'Error al agregar el segmento', 
         isLoading: false 
       });
+      throw error;
     }
   },
 })); 

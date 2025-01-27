@@ -37,10 +37,12 @@ const periodoTiempoText: Record<string, string> = {
 
 interface RuleFormData {
   nombreRegla: string;
+  descripcion: string;
   tipoRegla: string;
   limiteTransacciones?: number;
   periodoTiempo: string;
   limiteMontoTotal?: number;
+  puntajeRiesgo: number;
   nivelRiesgo: string;
   prioridad: number;
   estado: string;
@@ -48,8 +50,10 @@ interface RuleFormData {
 
 const initialFormData: RuleFormData = {
   nombreRegla: '',
+  descripcion: '',
   tipoRegla: 'TRX',
   periodoTiempo: 'DIA',
+  puntajeRiesgo: 50,
   nivelRiesgo: 'MED',
   prioridad: 1,
   estado: 'ACT'
@@ -87,10 +91,12 @@ export default function FraudRulesPage() {
     setSelectedRule(rule.codRegla);
     setFormData({
       nombreRegla: rule.nombreRegla,
+      descripcion: rule.descripcion,
       tipoRegla: rule.tipoRegla,
       limiteTransacciones: rule.limiteTransacciones,
       periodoTiempo: rule.periodoTiempo,
       limiteMontoTotal: rule.limiteMontoTotal,
+      puntajeRiesgo: rule.puntajeRiesgo,
       nivelRiesgo: rule.nivelRiesgo,
       prioridad: rule.prioridad,
       estado: rule.estado
@@ -113,6 +119,15 @@ export default function FraudRulesPage() {
           value={formData.nombreRegla}
           onChange={(e) => setFormData({ ...formData, nombreRegla: e.target.value })}
           required
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="descripcion">Descripción</Label>
+        <Input
+          id="descripcion"
+          value={formData.descripcion}
+          onChange={(e) => setFormData({ ...formData, descripcion: e.target.value })}
         />
       </div>
 
@@ -181,6 +196,19 @@ export default function FraudRulesPage() {
 
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
+          <Label htmlFor="puntajeRiesgo">Puntaje de Riesgo</Label>
+          <Input
+            id="puntajeRiesgo"
+            type="number"
+            min="0"
+            max="100"
+            value={formData.puntajeRiesgo}
+            onChange={(e) => setFormData({ ...formData, puntajeRiesgo: Number(e.target.value) })}
+            required
+          />
+        </div>
+
+        <div className="space-y-2">
           <Label htmlFor="nivelRiesgo">Nivel de Riesgo</Label>
           <Select
             value={formData.nivelRiesgo}
@@ -196,18 +224,18 @@ export default function FraudRulesPage() {
             </SelectContent>
           </Select>
         </div>
+      </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="prioridad">Prioridad</Label>
-          <Input
-            id="prioridad"
-            type="number"
-            min="1"
-            value={formData.prioridad}
-            onChange={(e) => setFormData({ ...formData, prioridad: Number(e.target.value) })}
-            required
-          />
-        </div>
+      <div className="space-y-2">
+        <Label htmlFor="prioridad">Prioridad</Label>
+        <Input
+          id="prioridad"
+          type="number"
+          min="1"
+          value={formData.prioridad}
+          onChange={(e) => setFormData({ ...formData, prioridad: Number(e.target.value) })}
+          required
+        />
       </div>
 
       <DialogFooter>

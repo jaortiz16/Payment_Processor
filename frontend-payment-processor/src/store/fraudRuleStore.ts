@@ -4,10 +4,12 @@ import axios from 'axios';
 export interface FraudRule {
   codRegla: number;
   nombreRegla: string;
+  descripcion?: string;
   tipoRegla: string;
   limiteTransacciones?: number;
   periodoTiempo: string;
   limiteMontoTotal?: number;
+  puntajeRiesgo?: number;
   nivelRiesgo: string;
   estado: string;
   prioridad: number;
@@ -25,7 +27,7 @@ interface FraudRuleState {
   deleteRule: (id: number) => Promise<void>;
 }
 
-const API_URL = 'http://localhost:8080/api/v1/reglas-fraude';
+const API_URL = 'http://localhost:8080/v1/fraudes/reglas';
 
 export const useFraudRuleStore = create<FraudRuleState>((set) => ({
   rules: [],
@@ -38,9 +40,11 @@ export const useFraudRuleStore = create<FraudRuleState>((set) => ({
       const response = await axios.get(API_URL);
       set({ rules: response.data, isLoading: false });
     } catch (error) {
+      console.error('Error fetching rules:', error);
       set({ 
         error: error instanceof Error ? error.message : 'Error al cargar las reglas', 
-        isLoading: false 
+        isLoading: false,
+        rules: []
       });
     }
   },
@@ -54,10 +58,12 @@ export const useFraudRuleStore = create<FraudRuleState>((set) => ({
         isLoading: false 
       }));
     } catch (error) {
+      console.error('Error creating rule:', error);
       set({ 
         error: error instanceof Error ? error.message : 'Error al crear la regla', 
         isLoading: false 
       });
+      throw error;
     }
   },
 
@@ -70,10 +76,12 @@ export const useFraudRuleStore = create<FraudRuleState>((set) => ({
         isLoading: false
       }));
     } catch (error) {
+      console.error('Error updating rule:', error);
       set({ 
         error: error instanceof Error ? error.message : 'Error al actualizar la regla', 
         isLoading: false 
       });
+      throw error;
     }
   },
 
@@ -86,10 +94,12 @@ export const useFraudRuleStore = create<FraudRuleState>((set) => ({
         isLoading: false
       }));
     } catch (error) {
+      console.error('Error deleting rule:', error);
       set({ 
         error: error instanceof Error ? error.message : 'Error al eliminar la regla', 
         isLoading: false 
       });
+      throw error;
     }
   },
 })); 
