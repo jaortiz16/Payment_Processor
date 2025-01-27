@@ -11,7 +11,7 @@ export interface Bank {
   comision: {
     codigo: number;
     nombre: string;
-    porcentaje: number | string;
+    porcentaje: number;
   };
   estado: string;
   fechaInactivacion?: string;
@@ -28,7 +28,7 @@ interface BankState {
   deactivateBank: (id: number) => Promise<void>;
 }
 
-const API_URL = 'http://localhost:8080/api/v1/bancos';
+const API_URL = 'http://localhost:8080/v1/bancos';
 
 export const useBankStore = create<BankState>((set) => ({
   banks: [],
@@ -38,7 +38,7 @@ export const useBankStore = create<BankState>((set) => ({
   fetchBanks: async () => {
     try {
       set({ isLoading: true, error: null });
-      const response = await axios.get(`${API_URL}/bancos-activos`, {
+      const response = await axios.get(`${API_URL}`, {
         headers: {
           'Accept': 'application/json',
           'Content-Type': 'application/json'
@@ -70,14 +70,13 @@ export const useBankStore = create<BankState>((set) => ({
   searchBanks: async (query: string) => {
     try {
       set({ isLoading: true, error: null });
-      const response = await axios.get(`${API_URL}/buscar-nombre?nombreComercial=${query}`, {
+      const response = await axios.get(`${API_URL}/buscar?nombre=${query}`, {
         headers: {
           'Accept': 'application/json',
           'Content-Type': 'application/json'
         }
       });
       
-      // Transformar los datos para asegurar que el porcentaje sea un número
       const banksWithFormattedData = response.data.map((bank: Bank) => ({
         ...bank,
         comision: {
@@ -102,7 +101,7 @@ export const useBankStore = create<BankState>((set) => ({
   createBank: async (bank) => {
     try {
       set({ isLoading: true, error: null });
-      const response = await axios.post(`${API_URL}/agregar-banco`, bank, {
+      const response = await axios.post(`${API_URL}`, bank, {
         headers: {
           'Accept': 'application/json',
           'Content-Type': 'application/json'
@@ -124,7 +123,7 @@ export const useBankStore = create<BankState>((set) => ({
   updateBank: async (id, bank) => {
     try {
       set({ isLoading: true, error: null });
-      const response = await axios.put(`${API_URL}/actualizar-banco/${id}`, bank, {
+      const response = await axios.put(`${API_URL}/${id}`, bank, {
         headers: {
           'Accept': 'application/json',
           'Content-Type': 'application/json'
@@ -146,7 +145,7 @@ export const useBankStore = create<BankState>((set) => ({
   deactivateBank: async (id) => {
     try {
       set({ isLoading: true, error: null });
-      await axios.delete(`${API_URL}/inactivar-banco/${id}`, {
+      await axios.delete(`${API_URL}/${id}`, {
         headers: {
           'Accept': 'application/json',
           'Content-Type': 'application/json'

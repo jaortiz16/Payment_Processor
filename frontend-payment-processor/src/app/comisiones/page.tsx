@@ -21,7 +21,7 @@ interface CommissionFormData {
 const initialFormData: CommissionFormData = {
   tipo: 'POR',
   montoBase: 0,
-  transaccionesBase: 0,
+  transaccionesBase: 1,
   manejaSegmentos: false,
 };
 
@@ -90,6 +90,16 @@ export default function CommissionsPage() {
   const handleAddSegment = (commission: any) => {
     setSelectedCommission(commission.codigo);
     setIsAddSegmentOpen(true);
+  };
+
+  const formatValue = (value: number, tipo: 'POR' | 'FIJ') => {
+    if (tipo === 'POR') {
+      return `${value.toFixed(2)}%`;
+    }
+    return new Intl.NumberFormat('es-EC', {
+      style: 'currency',
+      currency: 'USD'
+    }).format(value);
   };
 
   const CommissionForm = ({ onSubmit, isEdit = false }: { onSubmit: (e: React.FormEvent) => Promise<void>, isEdit?: boolean }) => (
@@ -274,7 +284,7 @@ export default function CommissionsPage() {
                     {commission.tipo === 'POR' ? 'Porcentaje' : 'Fijo'}
                   </CardTitle>
                   <CardDescription>
-                    {commission.tipo === 'POR' ? `${commission.montoBase}%` : `$${commission.montoBase}`}
+                    {formatValue(commission.montoBase, commission.tipo)}
                   </CardDescription>
                 </div>
               </div>
@@ -297,7 +307,7 @@ export default function CommissionsPage() {
                         <div key={segment.pk.codSegmento} className="text-sm">
                           <div className="flex justify-between">
                             <span>Hasta {segment.transaccionesHasta} trans.</span>
-                            <span>{commission.tipo === 'POR' ? `${segment.monto}%` : `$${segment.monto}`}</span>
+                            <span>{formatValue(segment.monto, commission.tipo)}</span>
                           </div>
                         </div>
                       ))}
