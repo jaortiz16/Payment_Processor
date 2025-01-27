@@ -11,22 +11,21 @@ public class TransaccionResponseDTO {
     private String error;
     private String estado;
     private BigDecimal monto;
-
-    public TransaccionResponseDTO(String mensaje) {
-        this.mensaje = mensaje;
-    }
-
-    public TransaccionResponseDTO(String mensaje, boolean isError) {
-        if (isError) {
-            this.error = mensaje;
-        } else {
-            this.mensaje = mensaje;
-        }
-    }
+    private boolean esError;
 
     public TransaccionResponseDTO(String mensaje, String estado, BigDecimal monto) {
-        this.mensaje = mensaje;
-        this.estado = estado;
+        this.mensaje = mensaje != null ? mensaje : "Transacción procesada";
+        this.estado = estado != null ? estado : "PEN";
         this.monto = monto;
+        this.error = null;
+        this.esError = false;
+    }
+
+    public TransaccionResponseDTO(String error, boolean esError) {
+        this.error = error != null ? error : "Error desconocido";
+        this.esError = esError;
+        this.mensaje = null;
+        this.estado = "REC";
+        this.monto = null;
     }
 } 

@@ -144,7 +144,7 @@ public class TransaccionService {
                 .orElseThrow(() -> new NotFoundException(transaccionId.toString(), ENTITY_NAME));
                 
         try {
-            ConsumoTarjetaCompleteRequestDTO request = prepararConsumoRequest(transaccion);
+            ConsumoTarjetaRequestDTO request = prepararConsumoRequest(transaccion);
             try {
                 ResponseEntity<RespuestaBancoDTO> respuesta = tarjetaConsumoServiceClient.procesarConsumoTarjeta(request);
                 
@@ -303,24 +303,38 @@ public class TransaccionService {
         return "Error al procesar la transacción con el banco";
     }
 
-    private ConsumoTarjetaCompleteRequestDTO prepararConsumoRequest(Transaccion transaccion) {
+    private ConsumoTarjetaRequestDTO prepararConsumoRequest(Transaccion transaccion) {
         try {
             if (transaccion.getMonto() == null) {
                 throw new BusinessException("monto", ENTITY_NAME, "validar monto");
             }
 
-            return ConsumoTarjetaCompleteRequestDTO.builder()
+            ConsumoTarjetaRequestDTO.DetalleComision gtw = new ConsumoTarjetaRequestDTO.DetalleComision();
+            gtw.setReferencia("REF-" + transaccion.getCodigoUnicoTransaccion());
+            gtw.setComision(new BigDecimal("0.01"));
+            gtw.setNumeroCuenta(transaccion.getGtwCuenta());
+
+            ConsumoTarjetaRequestDTO.DetalleComision processor = new ConsumoTarjetaRequestDTO.DetalleComision();
+            processor.setReferencia("PROC-" + transaccion.getCodigoUnicoTransaccion());
+            processor.setComision(new BigDecimal("0.01"));
+            processor.setNumeroCuenta("002");
+
+            ConsumoTarjetaRequestDTO.Detalle detalle = new ConsumoTarjetaRequestDTO.Detalle();
+            detalle.setGtw(gtw);
+            detalle.setProcessor(processor);
+
+            return ConsumoTarjetaRequestDTO.builder()
                     .numeroTarjeta(transaccion.getNumeroTarjeta())
                     .cvv(transaccion.getCvv())
-                    .fechaExpiracionTarjeta(transaccion.getFechaExpiracionTarjeta())
-                    .monto(transaccion.getMonto())
+                    .fechaCaducidad(transaccion.getFechaExpiracionTarjeta())
+                    .valor(transaccion.getMonto())
                     .descripcion("Transacción " + transaccion.getCodigoUnicoTransaccion())
-                    .numeroCuenta(transaccion.getNumeroCuenta())
-                    .modalidad(transaccion.getModalidad())
-                    .cuotas(transaccion.getCuotas() != null ? transaccion.getCuotas() : 1)
-                    .interesDiferido(transaccion.getInteresDiferido() != null ? transaccion.getInteresDiferido() : false)
                     .beneficiario(transaccion.getBeneficiario() != null ? 
                         transaccion.getBeneficiario() : "Beneficiario por defecto")
+                    .numeroCuenta(transaccion.getNumeroCuenta())
+                    .esDiferido(transaccion.getInteresDiferido() != null ? transaccion.getInteresDiferido() : false)
+                    .cuotas(transaccion.getCuotas() != null ? transaccion.getCuotas() : 0)
+                    .detalle(detalle)
                     .build();
         } catch (Exception e) {
             throw new BusinessException(e.getMessage(), ENTITY_NAME, "preparar request");

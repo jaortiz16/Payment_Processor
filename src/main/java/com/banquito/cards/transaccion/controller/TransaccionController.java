@@ -78,8 +78,10 @@ public class TransaccionController {
             @Parameter(description = "Nuevo estado de la transacción") @RequestParam String nuevoEstado,
             @Parameter(description = "Detalle del cambio de estado") @RequestParam(required = false) String detalle) {
         try {
-            transaccionService.actualizarEstadoTransaccion(id, nuevoEstado, detalle != null ? detalle : "Cambio de estado manual");
-            return ResponseEntity.ok(new TransaccionResponseDTO("Estado actualizado exitosamente"));
+            TransaccionDTO transaccion = transaccionService.actualizarEstadoTransaccion(id, nuevoEstado, 
+                detalle != null ? detalle : "Cambio de estado manual");
+            return ResponseEntity.ok(new TransaccionResponseDTO("Estado actualizado exitosamente", 
+                transaccion.getEstado(), transaccion.getMonto()));
         } catch (RuntimeException e) {
             throw new BusinessException(id.toString(), ENTITY_NAME, "actualizar estado");
         }
