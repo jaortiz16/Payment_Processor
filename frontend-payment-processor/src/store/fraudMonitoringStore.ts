@@ -33,7 +33,7 @@ interface FraudMonitoringState {
   processAlert: (id: number, estado: string, detalle?: string) => Promise<void>;
 }
 
-const API_URL = 'http://3.144.95.97/api/v1/monitoreo-fraude';
+const API_URL = 'http://18.117.166.56/api/v1/monitoreo-fraude';
 
 export const useFraudMonitoringStore = create<FraudMonitoringState>((set) => ({
   alerts: [],

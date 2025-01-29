@@ -28,7 +28,7 @@ interface BankState {
   deactivateBank: (id: number) => Promise<void>;
 }
 
-const API_URL = 'http://3.144.95.97/v1/bancos';
+const API_URL = 'http://18.117.166.56/v1/bancos';
 
 export const useBankStore = create<BankState>((set) => ({
   banks: [],

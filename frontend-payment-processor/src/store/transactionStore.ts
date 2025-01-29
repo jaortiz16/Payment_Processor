@@ -38,7 +38,7 @@ interface TransactionStore {
   }) => Promise<void>;
 }
 
-const API_URL = 'http://3.144.95.97';
+const API_URL = 'http://18.117.166.56';
 
 export const useTransactionStore = create<TransactionStore>((set) => ({
   transactions: [],

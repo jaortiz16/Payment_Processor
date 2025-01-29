@@ -27,7 +27,7 @@ interface FraudRuleState {
   deleteRule: (id: number) => Promise<void>;
 }
 
-const API_URL = 'http://3.144.95.97/v1/fraudes/reglas';
+const API_URL = 'http://18.117.166.56/v1/fraudes/reglas';
 
 export const useFraudRuleStore = create<FraudRuleState>((set) => ({
   rules: [],
